@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "communication"
+      MONGO_INITDB_ROOT_PASSWORD: "communication-2023"
+
+  redis:
+    container_name: redis
+    image: bitnami/redis:latest
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: "communication-2023"
+
+  redis-sentinel:
+    container_name: redis-sentinel
+    image: bitnami/redis-sentinel:latest
+    ports:
+      - "26379:26379"
+    environment:
+      REDIS_MASTER_SET: "redis"
+      REDIS_MASTER_HOST: "redis"
+      REDIS_MASTER_PASSWORD: "communication-2023"
+    depends_on:
+      - redis
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "communication"
+      RABBITMQ_DEFAULT_PASS: "communication-2023"
+
+  message:
+    container_name: message
+    image: sanic:latest
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      MESSAGE_SERVER_NAME: "Message"
+      MESSAGE_CACHE_MASTER_SET: "redis"
+      MESSAGE_CACHE_MASTER_PASSWORD: "communication-2023"
+      MESSAGE_CACHE_SENTINEL_HOST: "redis-sentinel"
+      MESSAGE_CACHE_SENTINEL_PORT: "26379"
+      MESSAGE_CACHE_SENTINEL_PASSWORD: "communication-2023"
+    volumes:
+      - "/Users/ling/Documents/personal-working/message:/app"
+    tty: true
+    depends_on:
+      - redis
+      - redis-sentinel
+      - rabbitmq
+      - mongodb
