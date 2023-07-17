@@ -1,3 +1,5 @@
+.vscode/
+.idea/
 .gitignore
 
 docker-compose.yaml
@@ -5,3 +7,5 @@ LICENSE
 README.md
 
 __pycache__/
+
+项目进度管理.is2
