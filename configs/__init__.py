@@ -1,6 +1,8 @@
 from typing import Any
+
 import environ
 from sanic.config import Config as SanicConfig
+
 from .cache import CacheConfig
 
 

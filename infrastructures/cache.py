@@ -1,8 +1,10 @@
-from common.depend import Dependency
 from redis.asyncio import Sentinel
-from redis.backoff import ExponentialBackoff  # 指数退避
-from redis.exceptions import BusyLoadingError, ConnectionError
 from redis.asyncio.retry import Retry
+from redis.backoff import ExponentialBackoff  # 指数退避
+from redis.exceptions import BusyLoadingError
+from redis.exceptions import ConnectionError
+
+from common.depend import Dependency
 
 
 class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cache"):

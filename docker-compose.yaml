@@ -49,6 +49,17 @@ services:
       - "8000:8000"
     environment:
       MESSAGE_SERVER_NAME: "Message"
+
+      MESSAGE_QUEUE_HOST: "rabbitmq"
+      MESSAGE_QUEUE_PORT: "5672"
+      MESSAGE_QUEUE_USERNAME: "communication"
+      MESSAGE_QUEUE_PASSWORD: "communication-2023"
+
+      MESSAGE_DATABASE_HOST: "mongodb"
+      MESSAGE_DATABASE_PORT: "27017"
+      MESSAGE_DATABASE_USERNAME: "communication"
+      MESSAGE_DATABASE_PASSWORD: "communication-2023"
+
       MESSAGE_CACHE_MASTER_SET: "redis"
       MESSAGE_CACHE_MASTER_PASSWORD: "communication-2023"
       MESSAGE_CACHE_SENTINEL_HOST: "redis-sentinel"

@@ -1,13 +1,16 @@
 import orjson
-from sanic import Sanic
 from sanic import Request
-from sanic.response import text, json
+from sanic import Sanic
+from sanic.response import json
+from sanic.response import text
+
+from common.constants import HEALTHY
+from common.constants import SERVER_NAME
+from common.constants import UNHEALTHY
 from configs import ConfigProxy
 from infrastructures.cache import CacheDependency
 from infrastructures.mongodb import MongoDBDependency
 from infrastructures.queue import QueueDependency
-from common.constants import SERVER_NAME, HEALTHY, UNHEALTHY
-
 
 app = Sanic(
     SERVER_NAME,
@@ -39,3 +42,13 @@ async def health(request):
             ret[dependency.name] = UNHEALTHY
 
     return json(ret)
+
+
+@app.get("/email")
+async def email(request):
+    from apps.message.providers.email import SMTPEmailMessageProviderModel
+
+    provider = SMTPEmailMessageProviderModel
+    provider.schema()
+
+    return text("NOT OK")

@@ -1,4 +1,5 @@
 from sanic import Sanic
+
 from common.constants import SERVER_NAME
 
 

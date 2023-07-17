@@ -1,8 +1,10 @@
 import abc
-from abc import ABCMeta
 import asyncio
-from sanic.log import logger
+from abc import ABCMeta
 from typing import Any
+
+from sanic.log import logger
+
 from common.health import HealthChecker
 
 
