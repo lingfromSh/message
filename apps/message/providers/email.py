@@ -1,15 +1,14 @@
 import enum
 import smtplib
-import aiohttp
-from email.mime.text import MIMEText
+from email.header import Header
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
-from email.header import Header
-
+from email.mime.text import MIMEText
 from ipaddress import IPv4Address
 from typing import List
 from typing import Optional
 
+import aiohttp
 from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import conint
@@ -31,6 +30,10 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
     class Info:
         name = "SMTP"
         type = MessageProviderType.EMAIL
+
+    class Capability:
+        is_enabled = True
+        can_send = True
 
     class Config(BaseModel):
         host: IPv4Address

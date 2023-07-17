@@ -3,13 +3,13 @@ from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff  # 指数退避
 from redis.exceptions import BusyLoadingError
 from redis.exceptions import ConnectionError
+from sanic.log import logger
 
 from common.depend import Dependency
 
 
 class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cache"):
     async def prepare(self) -> bool:
-        self.is_prepared = True
         cache_config = self.app.config.CACHE
         sentinel_password_kwargs = {"password": cache_config.SENTINEL_PASSWORD}
         master_password_kwargs = {"password": cache_config.MASTER_PASSWORD}
@@ -32,8 +32,9 @@ class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cac
         try:
             await self._prepared.get("HEALTH_CHECK")
             self.is_prepared = True
-        except Exception:
-            pass
+            logger.info("dependency:Cache is prepared")
+        except Exception as err:
+            logger.warn(f"dependency:Cache is not prepared, {str(err)}")
         finally:
             return self.is_prepared
 

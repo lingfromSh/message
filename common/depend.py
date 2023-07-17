@@ -13,7 +13,6 @@ class Dependency(HealthChecker, metaclass=abc.ABCMeta):
         self.app = app
         self.is_prepared = False
         self._prepared = None
-        asyncio.run(self.prepare())
         self._register()
 
     def __init_subclass__(cls, dependency_name: str, dependency_alias: str) -> None:
@@ -21,11 +20,11 @@ class Dependency(HealthChecker, metaclass=abc.ABCMeta):
         setattr(cls, "alias", dependency_alias)
 
     def __getattribute__(self, name: str) -> Any:
-        if name in ("is_prepared", "_prepared", "prepare"):
+        if name in ("name", "is_prepared", "_prepared", "prepare"):
             return object.__getattribute__(self, name)
 
         # if prepare failed, raise error
-        if not self.is_prepared and not self.prepare():
+        if not self.is_prepared:
             logger.warn(f"dependency:{self.name} is not prepared")
 
         try:

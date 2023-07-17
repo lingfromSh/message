@@ -75,7 +75,8 @@ class MessageProviderConfigOption:
 
     @classmethod
     def from_cls(cls, klass) -> MessageProviderConfigOption:
-        if issubclass(klass, BaseModel):
+        print(issubclass(klass, BaseModel))
+        if not issubclass(klass, BaseModel):
             raise ImproperlyConfiguredException(
                 "a config model must be subclass of pydantic's BaseModel"
             )

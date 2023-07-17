@@ -1,7 +1,12 @@
-from typing import Union, List, Dict, ByteString
+from typing import ByteString
+from typing import Dict
+from typing import List
+from typing import Union
+
 from pydantic import BaseModel
-from apps.message.providers.base import MessageProviderModel
+
 from apps.message.common.constants import MessageProviderType
+from apps.message.providers.base import MessageProviderModel
 
 
 class WebsocketMessageProviderModel(MessageProviderModel):

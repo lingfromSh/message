@@ -19,6 +19,7 @@ redis = "^4.6.0"
 orjson = "^3.9.2"
 environ-config = "^23.2.0"
 aiohttp = "^3.8.4"
+python-ulid = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"

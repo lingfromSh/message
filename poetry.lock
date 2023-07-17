@@ -1610,6 +1610,22 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
+name = "python-ulid"
+version = "1.1.0"
+description = "Universally Unique Lexicographically Sortable Identifier"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python-ulid-1.1.0.tar.gz", hash = "sha256:5fb5e4a91db8ca93e8938a613360b3def299b60d41f847279a8c39c9b2e9c65e"},
+    {file = "python_ulid-1.1.0-py3-none-any.whl", hash = "sha256:88c952f6be133dbede19c907d72d26717d2691ec8421512b573144794d891e24"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
+reference = "sjtu"
+
+[[package]]
 name = "pytz"
 version = "2023.3"
 description = "World timezone definitions, modern and historical"
@@ -2183,4 +2199,4 @@ reference = "sjtu"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "891ee1737d41b9d23b078b1a7ea0548c63c785d93945a70fbfa2e9ae240e6b12"
+content-hash = "234e987fe26daecac599cc5e25932bfe8a4c336c4546da56735e8f2d54c5376b"

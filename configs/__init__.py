@@ -10,6 +10,13 @@ from .cache import CacheConfig
 class Config:
     CACHE = environ.group(CacheConfig)
 
+    WEBSOCKET_PING_INTERVAL = environ.var(
+        default=2, name="WEBSOCKET_PING_INTERVAL", converter=int
+    )
+    WEBSOCKET_PING_TIMEOUT = environ.var(
+        default=2, name="WEBSOCKET_PING_TIMEOUT", converter=int
+    )
+
 
 config = environ.to_config(Config)
 
@@ -17,10 +24,10 @@ config = environ.to_config(Config)
 class ConfigProxy(SanicConfig):
     def __getattr__(self, attr: Any):
         try:
-            return self[attr]
-        except KeyError:
+            return getattr(config, attr)
+        except AttributeError:
             pass
         try:
-            return getattr(config, attr)
-        except AttributeError as ae:
-            raise AttributeError(f"Config has no '{ae.args[0]}'")
+            return self[attr]
+        except KeyError as ke:
+            raise AttributeError(f"Config has no '{ke.args[0]}'")

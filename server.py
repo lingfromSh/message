@@ -11,6 +11,7 @@ from configs import ConfigProxy
 from infrastructures.cache import CacheDependency
 from infrastructures.mongodb import MongoDBDependency
 from infrastructures.queue import QueueDependency
+from infrastructures.websocket import WebsocketConnectionPoolDependency
 
 app = Sanic(
     SERVER_NAME,
@@ -19,12 +20,35 @@ app = Sanic(
     loads=orjson.loads,
     config=ConfigProxy(),
 )
-
-
 app.ctx.dependencies = set()
-app.ctx.dependencies.add(CacheDependency(app))
-app.ctx.dependencies.add(MongoDBDependency(app))
-app.ctx.dependencies.add(QueueDependency(app))
+
+
+@app.before_server_start
+async def prepare_cache_dependency(app):
+    cache_dependency = CacheDependency(app)
+    await cache_dependency.prepare()
+    app.ctx.dependencies.add(cache_dependency)
+
+
+@app.before_server_start
+async def prepare_mongodb_dependency(app):
+    mongodb_dependency = MongoDBDependency(app)
+    await mongodb_dependency.prepare()
+    app.ctx.dependencies.add(mongodb_dependency)
+
+
+@app.before_server_start
+async def prepare_queue_dependency(app):
+    queue_dependency = QueueDependency(app)
+    await queue_dependency.prepare()
+    app.ctx.dependencies.add(queue_dependency)
+
+
+@app.before_server_start
+async def prepare_websocket_pool_dependency(app):
+    websocket_pool_dependency = WebsocketConnectionPoolDependency(app)
+    await websocket_pool_dependency.prepare()
+    app.ctx.dependencies.add(websocket_pool_dependency)
 
 
 @app.get("/")
@@ -48,7 +72,11 @@ async def health(request):
 async def email(request):
     from apps.message.providers.email import SMTPEmailMessageProviderModel
 
-    provider = SMTPEmailMessageProviderModel
-    provider.schema()
-
     return text("NOT OK")
+
+
+@app.websocket("/websocket")
+async def handle_websocket(request, ws):
+    ctx = request.app.ctx
+    con_id = ctx.ws_pool.add_connection(ws)
+    await ctx.ws_pool.wait_closed(con_id)
