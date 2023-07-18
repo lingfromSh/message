@@ -1,6 +1,7 @@
 import orjson
 from sanic import Request
 from sanic import Sanic
+from sanic.log import logger
 from sanic.response import json
 from sanic.response import text
 
@@ -51,6 +52,13 @@ async def prepare_websocket_pool_dependency(app):
     app.ctx.dependencies.add(websocket_pool_dependency)
 
 
+@app.before_server_start
+async def acquire_worker_id(app):
+    # TODO: if it fails to get worker id, server won't serve any request.
+    app.ctx.worker_id = await app.ctx.cache.incr("worker")
+    logger.info(f"Worker: {app.ctx.worker_id}")
+
+
 @app.get("/")
 async def index(request: Request):
     return text("OK")
@@ -79,4 +87,18 @@ async def email(request):
 async def handle_websocket(request, ws):
     ctx = request.app.ctx
     con_id = ctx.ws_pool.add_connection(ws)
+    print("OPEN CONNECTION: ", con_id)
     await ctx.ws_pool.wait_closed(con_id)
+
+
+@app.get("/ulid")
+async def ulid(request):
+    connection_id = request.args.get("connection_id")
+    from apps.message.providers.websocket import WebsocketMessageProviderModel
+
+    websocket_provider = WebsocketMessageProviderModel()
+    message = websocket_provider.message_model.validate(
+        dict(connections=[connection_id], action="say.hello", payload="hello,world!")
+    )
+    await websocket_provider.send(message)
+    return json({"code": "OK"})

@@ -11,10 +11,10 @@ class Config:
     CACHE = environ.group(CacheConfig)
 
     WEBSOCKET_PING_INTERVAL = environ.var(
-        default=2, name="WEBSOCKET_PING_INTERVAL", converter=int
+        default=600, name="WEBSOCKET_PING_INTERVAL", converter=int
     )
     WEBSOCKET_PING_TIMEOUT = environ.var(
-        default=2, name="WEBSOCKET_PING_TIMEOUT", converter=int
+        default=600, name="WEBSOCKET_PING_TIMEOUT", converter=int
     )
 
 

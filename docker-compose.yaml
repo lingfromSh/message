@@ -60,6 +60,7 @@ services:
       context: .
     ports:
       - "8000:8000"
+      - "8443:8443"
     environment:
       MESSAGE_SERVER_NAME: "Message"
 

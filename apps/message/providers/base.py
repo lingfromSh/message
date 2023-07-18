@@ -176,8 +176,11 @@ class MessageProviderModel(metaclass=MessageProviderModelMetaClass):
         setattr(cls, "ABSTRACT", False)
 
     def __init__(self, **kwargs):
-        validated = self.config_model.validate(kwargs)
-        self.config = validated
+        if hasattr(self, "config_model"):
+            validated = self.config_model.validate(kwargs)
+            self.config = validated
+        else:
+            self.config = None
 
     def schema(self) -> dict:
         schema = {

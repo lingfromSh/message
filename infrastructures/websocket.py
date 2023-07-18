@@ -154,6 +154,9 @@ class WebsocketConnectionPoolDependency(
             await asyncio.sleep(self.app.config.WEBSOCKET_PING_INTERVAL)
 
     async def wait_closed(self, connection_id: str):
+        """
+        if negative=True, only release when client close this connection.
+        """
         while self.is_alive(connection_id):
             await asyncio.sleep(0)
         return False
