@@ -4,11 +4,13 @@ import environ
 from sanic.config import Config as SanicConfig
 
 from .cache import CacheConfig
+from .queue import QueueConfig
 
 
 @environ.config(prefix="MESSAGE")
 class Config:
     CACHE = environ.group(CacheConfig)
+    QUEUE = environ.group(QueueConfig)
 
     WEBSOCKET_PING_INTERVAL = environ.var(
         default=600, name="WEBSOCKET_PING_INTERVAL", converter=int
