@@ -1,6 +1,4 @@
 import abc
-import asyncio
-from abc import ABCMeta
 from typing import Any
 
 from sanic.log import logger
@@ -20,15 +18,10 @@ class Dependency(HealthChecker, metaclass=abc.ABCMeta):
         setattr(cls, "alias", dependency_alias)
 
     def __getattribute__(self, name: str) -> Any:
-        if name in ("name", "is_prepared", "_prepared", "prepare"):
-            return object.__getattribute__(self, name)
-
-        # if prepare failed, raise error
-        if not self.is_prepared:
-            logger.warn(f"dependency:{self.name} is not prepared")
-
         try:
-            return object.__getattribute__(self._prepared, name)
+            return object.__getattribute__(
+                object.__getattribute__(self, "_prepared"), name
+            )
         except AttributeError:
             return object.__getattribute__(self, name)
 

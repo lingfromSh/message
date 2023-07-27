@@ -1,4 +1,5 @@
 import abc
+import strawberry
 
 
 class HealthChecker(metaclass=abc.ABCMeta):
@@ -9,3 +10,9 @@ class HealthChecker(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     async def check(self) -> bool:
         raise NotImplementedError
+
+
+@strawberry.type
+class HealthStatus:
+    name: str
+    healthy: bool

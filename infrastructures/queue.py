@@ -1,47 +1,46 @@
 import asyncio
-import async_timeout
 from contextlib import suppress
 from sanic.log import logger
 from common.depend import Dependency
-from aio_pika import connect, Connection
-from aio_pika.connection import make_url
+from aio_pika import connect_robust
+from aio_pika.pool import Pool
+
+
+def connection_pool_factory(app):
+    connection_kwargs = {
+        "host": app.config.QUEUE.HOST,
+        "port": app.config.QUEUE.PORT,
+        "login": app.config.QUEUE.USERNAME,
+        "password": app.config.QUEUE.PASSWORD,
+    }
+
+    async def connection_factory():
+        return await connect_robust(**connection_kwargs, timeout=1)
+
+    return connection_factory
 
 
 class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="queue"):
+    MAX_CHANNEL_NUM = 8092
+
+    def __init__(self, app):
+        self.channel_counter = 0
+        super().__init__(app)
+
     async def prepare(self) -> bool:
         self.is_prepared = False
 
-        connection_kwargs = {
-            "host": self.app.config.QUEUE.HOST,
-            "port": self.app.config.QUEUE.PORT,
-            "login": self.app.config.QUEUE.USERNAME,
-            "password": self.app.config.QUEUE.PASSWORD,
-        }
-
         try:
-            self._prepared = await connect(**connection_kwargs, timeout=1)
+            self._prepared = Pool(connection_pool_factory(self.app), max_size=4)
             self.is_prepared = True
         except asyncio.TimeoutError:
-            self._prepared = Connection(make_url(**connection_kwargs))
+            self._prepared = None
         if self.is_prepared:
-            logger.info("dependency: Queue is prepared")
+            logger.info("dependency:Queue is prepared")
+        return self.is_prepared
 
     async def check(self) -> bool:
-        if self.is_prepared:
-            try:
-                async with async_timeout.timeout(1):
-                    channel = await self._prepared.channel()
-                    await channel.close()
-            except BaseException:
-                self.is_prepared = False
-                with suppress(asyncio.TimeoutError):
-                    async with async_timeout.timeout(1):
-                        await self._prepared.reconnect()
-        else:
-            try:
-                await self._prepared.connect(timeout=1)
-            except BaseException:
-                pass
+        if not self.is_prepared:
+            await self.prepare()
 
-        self.is_prepared = self._prepared.connected.is_set()
         return self.is_prepared

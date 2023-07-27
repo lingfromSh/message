@@ -2,6 +2,7 @@ import asyncio
 from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any
 
 import async_timeout

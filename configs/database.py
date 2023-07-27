@@ -3,6 +3,7 @@ import environ
 
 @environ.config(prefix="DATABASE")
 class DatabaseConfig:
-    HOST = environ.var("HOST")
-    PORT = environ.var("PORT", converter=int)
-    PASSWORD = environ.var("PASSWORD")
+    HOST = environ.var(name="HOST", default="mongodb")
+    PORT = environ.var(name="PORT", default=27017, converter=int)
+    USER = environ.var(name="USER", default="communication")
+    PASSWORD = environ.var(name="PASSWORD", default="communication-2023")

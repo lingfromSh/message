@@ -3,13 +3,17 @@ from typing import Any
 import environ
 from sanic.config import Config as SanicConfig
 
+from .api import APIConfig
 from .cache import CacheConfig
+from .database import DatabaseConfig
 from .queue import QueueConfig
 
 
 @environ.config(prefix="MESSAGE")
 class Config:
+    API = environ.group(APIConfig)
     CACHE = environ.group(CacheConfig)
+    DATABASE = environ.group(DatabaseConfig)
     QUEUE = environ.group(QueueConfig)
 
     WEBSOCKET_PING_INTERVAL = environ.var(

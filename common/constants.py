@@ -1,3 +1,5 @@
 SERVER_NAME = "Message"
-HEALTHY = "HEALTHY"
-UNHEALTHY = "UNHEALTHY"
+HEALTHY = True
+UNHEALTHY = False
+
+TOPIC_EXCHANGE_NAME = "message.topic.exchange"
