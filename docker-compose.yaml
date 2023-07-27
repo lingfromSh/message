@@ -52,12 +52,13 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: "communication"
       RABBITMQ_DEFAULT_PASS: "communication-2023"
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit channel_max 8092"
 
   message:
     container_name: message
-    image: sanic:latest
+    image: message:latest
     build:
-      context: .
+      context: ./
     ports:
       - "8000:8000"
       - "8443:8443"
@@ -86,5 +87,5 @@ services:
       - redis-master
       - redis-slave
       - redis-sentinel
-      - rabbitmq
+      # - rabbitmq
       - mongodb
