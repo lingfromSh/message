@@ -14,6 +14,7 @@ from pydantic import EmailStr
 from pydantic import conint
 
 from apps.message.common.constants import MessageProviderType
+from apps.message.common.interfaces import Message as BaseMessage
 from apps.message.providers.base import MessageProviderModel
 
 
@@ -51,7 +52,7 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
         # TODO: replace str with FileUrl
         certfile: Optional[str]
 
-    class Message(BaseModel):
+    class Message(BaseMessage):
         from_address: EmailStr
         to_addresses: List[EmailStr]
         cc_addresses: List[EmailStr]

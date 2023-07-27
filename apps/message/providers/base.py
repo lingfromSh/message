@@ -10,6 +10,8 @@ from common.exceptions import ImproperlyConfiguredException
 
 __all__ = ["MessageProviderModel"]
 
+__registries__ = {}
+
 
 @dataclass
 class MessageProviderInfoOption:
@@ -75,7 +77,6 @@ class MessageProviderConfigOption:
 
     @classmethod
     def from_cls(cls, klass) -> MessageProviderConfigOption:
-        print(issubclass(klass, BaseModel))
         if not issubclass(klass, BaseModel):
             raise ImproperlyConfiguredException(
                 "a config model must be subclass of pydantic's BaseModel"
@@ -119,7 +120,6 @@ class MessageProviderModelMetaClass(type):
             return getattr(clsbase, name)
 
     def __new__(mcs, clsname, clsbases, clsdict):
-        print(clsname, clsbases, clsdict)
         if clsdict.get("ABSTRACT"):
             return super().__new__(mcs, clsname, clsbases, clsdict)
 
@@ -162,7 +162,13 @@ class MessageProviderModelMetaClass(type):
             )
             clsdict["config_model"] = MessageProviderConfigOption.from_cls(ConfigModel)
 
-        return super().__new__(mcs, clsname, clsbases, clsdict)
+        newcls = super().__new__(mcs, clsname, clsbases, clsdict)
+
+        # register provider in mem
+        global __registries__
+        __registries__[(info_option.type, info_option.name)] = newcls
+
+        return newcls
 
 
 class MessageProviderModel(metaclass=MessageProviderModelMetaClass):
@@ -195,6 +201,10 @@ class MessageProviderModel(metaclass=MessageProviderModelMetaClass):
             schema["message_model"] = self.message_model.dict()
 
         return schema
+
+    @property
+    def need_configure(self):
+        return hasattr(self, "config_model")
 
     async def send(self, message):
         raise NotImplementedError

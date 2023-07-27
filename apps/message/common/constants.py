@@ -1,7 +1,7 @@
 import enum
 
 
-class MessageProviderType(enum.Enum):
+class MessageProviderType(str, enum.Enum):
     """
     Providers types
     """
@@ -10,3 +10,13 @@ class MessageProviderType(enum.Enum):
     EMAIL = "email"
     VOICE_MESSAGE = "voice_message"
     SMS = "sms"
+
+
+class MessageStatus(str, enum.Enum):
+    """
+    Message status
+    """
+
+    SENDING = "sending"
+    FAILED = "failed"
+    SUCCEEDED = "succeeded"
