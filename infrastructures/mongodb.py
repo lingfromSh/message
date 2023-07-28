@@ -1,5 +1,8 @@
-from sanic.log import logger
+import inspect
+
 from motor.motor_asyncio import AsyncIOMotorClient
+from sanic.log import logger
+
 from common.depend import Dependency
 
 
@@ -14,7 +17,7 @@ class MongoDBDependency(Dependency, dependency_name="MongoDB", dependency_alias=
         )
 
     async def prepare(self) -> bool:
-        self._prepared = AsyncIOMotorClient(self.uri).communication
+        self._prepared = AsyncIOMotorClient(self.uri).message
         self.is_prepared = True
         logger.info("dependency:MongoDB is prepared")
         return self.is_prepared

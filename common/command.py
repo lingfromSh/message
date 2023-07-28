@@ -1,13 +1,15 @@
 from __future__ import annotations
+
+from collections import OrderedDict
+from functools import partial
+
 import aio_pika
 import sanic
 import ulid
-from functools import partial
-from collections import OrderedDict
 from sanic.log import logger
+
 from common.constants import TOPIC_EXCHANGE_NAME
 from common.exceptions import ImproperlyConfiguredException
-
 
 __topic_subscirbers__ = OrderedDict()
 

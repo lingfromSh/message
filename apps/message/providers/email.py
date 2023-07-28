@@ -29,7 +29,7 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
     """
 
     class Info:
-        name = "SMTP"
+        name = "smtp"
         type = MessageProviderType.EMAIL
 
     class Capability:

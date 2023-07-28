@@ -202,9 +202,14 @@ class MessageProviderModel(metaclass=MessageProviderModelMetaClass):
 
         return schema
 
+    @classmethod
     @property
-    def need_configure(self):
-        return hasattr(self, "config_model")
+    def need_configure(cls):
+        return hasattr(cls, "config_model")
+
+    @classmethod
+    def validate_config(cls, config: dict):
+        cls.config_model.validate(config)
 
     async def send(self, message):
         raise NotImplementedError

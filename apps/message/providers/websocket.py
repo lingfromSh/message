@@ -11,7 +11,7 @@ from utils import get_app
 
 class WebsocketMessageProviderModel(MessageProviderModel):
     class Info:
-        name = "Websocket"
+        name = "websocket"
         description = "Bio-Channel Communication"
         type = MessageProviderType.WEBSOCKET
 

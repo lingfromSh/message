@@ -1,9 +1,11 @@
 import asyncio
 from contextlib import suppress
-from sanic.log import logger
-from common.depend import Dependency
+
 from aio_pika import connect_robust
 from aio_pika.pool import Pool
+from sanic.log import logger
+
+from common.depend import Dependency
 
 
 def connection_pool_factory(app):

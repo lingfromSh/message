@@ -4,7 +4,6 @@ from sanic.log import logger
 
 from common.command import setup as setup_command
 from common.constants import SERVER_NAME
-
 from configs import ConfigProxy
 from infrastructures.cache import CacheDependency
 from infrastructures.mongodb import MongoDBDependency
@@ -34,7 +33,7 @@ async def prepare_mongodb_dependency(app):
     mongodb_dependency = MongoDBDependency(app)
     await mongodb_dependency.prepare()
     app.ctx.dependencies.add(mongodb_dependency)
-    app.ctx.db = mongodb_dependency._prepared
+    app.shared_ctx.db = mongodb_dependency._prepared
 
 
 @app.before_server_start
