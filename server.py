@@ -72,4 +72,5 @@ async def setup_graphql_schema(app):
 async def handle_websocket(request, ws):
     ctx = request.app.ctx
     con_id = ctx.ws_pool.add_connection(ws)
+    logger.info(f"new connection connected -> {con_id}")
     await ctx.ws_pool.wait_closed(con_id)

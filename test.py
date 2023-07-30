@@ -43,7 +43,7 @@ async def main():
     from umongo.fields import ObjectId
 
     ps = []
-    for i in range(400000, 1000000):
+    for i in range(20000000, 30000000):
         p = Provider(
             type="websocket",
             name=f"websocket{i}",

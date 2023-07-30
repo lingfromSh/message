@@ -13,7 +13,9 @@ from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import conint
 
+from apps.message.common.interfaces import SendResult
 from apps.message.common.constants import MessageProviderType
+from apps.message.common.constants import MessageStatus
 from apps.message.common.interfaces import Message as BaseMessage
 from apps.message.providers.base import MessageProviderModel
 
@@ -63,7 +65,7 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
         # TODO: replace str with FileUrl
         attachments: List[str]
 
-    async def send(self, message: Message):
+    async def send(self, provider_id, message: Message, immediate=True):
         if not isinstance(message, self.message_model):
             # TODO: record failure's reason
             return
@@ -108,6 +110,11 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
                 + message.cc_addresses
                 + message.bcc_addresses,
                 msg=content.as_bytes(),
+            )
+            return SendResult(
+                provider_id=provider_id,
+                message=message,
+                status=MessageStatus.SUCCEEDED.value,
             )
         finally:
             server.quit()

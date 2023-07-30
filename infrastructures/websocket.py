@@ -1,8 +1,9 @@
 import asyncio
+import orjson
 from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
-from dataclasses import dataclass
+
 from typing import Any
 
 import async_timeout
@@ -95,11 +96,15 @@ class WebsocketConnectionPoolDependency(
         while self.is_alive(connection):
             try:
                 data = queue.get_nowait()
+                logger.info(f"new message to send: {data}")
             except QueueEmpty:
                 await asyncio.sleep(0)
                 continue
             try:
-                await connection.send(data)
+                if isinstance(data, (bytes, str, int)):
+                    await connection.send(data)
+                else:
+                    await connection.send(orjson.dumps(data).decode())
                 queue.task_done()
             except websockets_exceptions.ConnectionClosed:
                 await self.remove_connection(connection)

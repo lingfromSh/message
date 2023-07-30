@@ -25,7 +25,7 @@ class Provider(Document):
 
 @instance.register
 class Message(Document):
-    provier = fields.ReferenceField("Provider", required=True)
+    provider = fields.ReferenceField("Provider", required=True)
     realm = fields.DictField(required=True)
     status = fields.StringField(required=True)
 

@@ -4,27 +4,25 @@ from typing import List
 from typing import Optional
 
 from bson.objectid import ObjectId
-from pydantic import AfterValidator
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import PlainValidator
 from pydantic import WrapSerializer
 from pydantic import computed_field
 from pydantic import constr
 from pydantic import model_validator
 from typing_extensions import Annotated
+from umongo.fields import Reference
 
 from apps.message.common.constants import MessageProviderType
+
 from apps.message.models import Provider
 from apps.message.utils import get_provider
 from utils import get_app
 
-app = get_app()
+from .types import ObjectID
 
-ObjectID = Annotated[
-    str, AfterValidator(lambda x: ObjectId(x)), PlainValidator(lambda x: str(x))
-]
+app = get_app()
 
 
 def ser_enum(v, nxt):
@@ -116,3 +114,4 @@ class ProviderOutputModel(BaseModel):
     @property
     def global_id(self) -> str:
         return self.oid
+

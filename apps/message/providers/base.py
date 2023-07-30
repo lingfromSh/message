@@ -6,6 +6,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 from apps.message.common.constants import MessageProviderType
+from apps.message.common.interfaces import SendResult
+from apps.message.models import Message
 from common.exceptions import ImproperlyConfiguredException
 
 __all__ = ["MessageProviderModel"]
@@ -209,7 +211,11 @@ class MessageProviderModel(metaclass=MessageProviderModelMetaClass):
 
     @classmethod
     def validate_config(cls, config: dict):
-        cls.config_model.validate(config)
+        return cls.config_model.validate(config)
 
-    async def send(self, message):
+    @classmethod
+    def validate_message(cls, config: dict):
+        return cls.message_model.validate(config)
+
+    async def send(self, provider_id, message, immediate=True) -> SendResult:
         raise NotImplementedError
