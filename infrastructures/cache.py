@@ -30,7 +30,7 @@ class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cac
         self._prepared = self._sentinel.master_for(cache_config.MASTER_SET)
 
         try:
-            await self._prepared.get("HEALTH_CHECK")
+            await self.get("HEALTH_CHECK")
             self.is_prepared = True
             logger.info("dependency:Cache is prepared")
         except Exception as err:

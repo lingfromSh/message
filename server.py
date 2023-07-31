@@ -1,4 +1,7 @@
 import orjson
+from apscheduler.jobstores.memory import MemoryJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from sanic import Sanic
 from sanic.log import logger
 
@@ -53,14 +56,8 @@ async def prepare_websocket_pool_dependency(app):
 @app.before_server_start
 async def acquire_worker_id(app):
     # TODO: if it fails to get worker id, server won't serve any request.
-    app.ctx.worker_id = await app.ctx.cache.incr("worker")
+    app.ctx.worker_id = await app.shared_ctx.cache.incr("worker")
     logger.info(f"Worker: {app.ctx.worker_id}")
-
-
-@app.before_server_start
-async def setup_command_subscribers(app):
-    async with app.ctx.queue.acquire() as connection:
-        await setup_command(app, connection)
 
 
 @app.before_server_start
@@ -68,9 +65,28 @@ async def setup_graphql_schema(app):
     setup_schema(app)
 
 
+@app.before_server_start
+async def setup_task_scheduler(app):
+    scheduler = AsyncIOScheduler()
+    scheduler.start()
+    app.shared_ctx.task_scheduler = scheduler
+
+    from apps.plan.task import enqueue_future_task
+
+    app.shared_ctx.task_scheduler.add_job(
+        enqueue_future_task, trigger=IntervalTrigger(seconds=5)
+    )
+
+
+@app.before_server_start
+async def setup_command_subscribers(app):
+    async with app.shared_ctx.queue.acquire() as connection:
+        await setup_command(app, connection)
+
+
 @app.websocket("/websocket")
 async def handle_websocket(request, ws):
-    ctx = request.app.ctx
+    ctx = request.app.shared_ctx
     con_id = ctx.ws_pool.add_connection(ws)
     logger.info(f"new connection connected -> {con_id}")
     await ctx.ws_pool.wait_closed(con_id)

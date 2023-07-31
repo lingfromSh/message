@@ -1,15 +1,12 @@
 from umongo import Document
 from umongo import fields
-from umongo.frameworks.motor_asyncio import MotorAsyncIOInstance
 
 from utils import get_app
 
 app = get_app()
 
-instance = MotorAsyncIOInstance(db=app.shared_ctx.db)
 
-
-@instance.register
+@app.shared_ctx.doc_instance.register
 class Provider(Document):
     type = fields.StringField(required=True, max_length=32)
     code = fields.StringField(required=True)
@@ -23,7 +20,7 @@ class Provider(Document):
         collection_name = "providers"
 
 
-@instance.register
+@app.shared_ctx.doc_instance.register
 class Message(Document):
     provider = fields.ReferenceField("Provider", required=True)
     realm = fields.DictField(required=True)

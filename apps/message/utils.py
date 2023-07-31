@@ -2,7 +2,7 @@ from apps.message.common.constants import MessageProviderType
 from apps.message.providers.base import MessageProviderModel
 
 
-def get_provider(type: MessageProviderType, code: str) -> MessageProviderModel | None:
+def get_provider(type: MessageProviderType, code: str) -> MessageProviderModel:
     from apps.message.providers.base import __registries__
 
     try:

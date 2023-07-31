@@ -8,10 +8,10 @@ import strawberry
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.models import Provider
+from apps.message.validators.message import SendMessageInputModel
 from apps.message.validators.provider import CreateProviderInputModel
 from apps.message.validators.provider import DestroyProviderInputModel
 from apps.message.validators.provider import UpdateProviderInputModel
-from apps.message.validators.message import SendMessageInputModel
 from infrastructures.graphql import ObjectID
 
 

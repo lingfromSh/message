@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import Optional
-from umongo.fields import Reference
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import computed_field
-from pydantic import ConfigDict
+from umongo.fields import Reference
 
-from apps.message.utils import get_provider
-from apps.message.models import Provider
-from apps.message.models import Message
 from apps.message.common.constants import MessageStatus
+from apps.message.models import Message
+from apps.message.models import Provider
+from apps.message.utils import get_provider
+
 from .types import ObjectID
 
 
@@ -38,7 +39,6 @@ class SendMessageInputModel(BaseModel):
         data["provider"] = self.provider
         message = Message(**data)
         await message.commit()
-        print(message)
         return message
 
 

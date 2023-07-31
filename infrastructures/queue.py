@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import suppress
 
 from aio_pika import connect_robust
 from aio_pika.pool import Pool

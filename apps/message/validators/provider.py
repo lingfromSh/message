@@ -15,7 +15,6 @@ from typing_extensions import Annotated
 from umongo.fields import Reference
 
 from apps.message.common.constants import MessageProviderType
-
 from apps.message.models import Provider
 from apps.message.utils import get_provider
 from utils import get_app

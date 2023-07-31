@@ -2,8 +2,8 @@ from typing import Dict
 from typing import List
 from typing import Union
 
-from sanic.log import logger
 from pydantic import BaseModel
+from sanic.log import logger
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
@@ -29,8 +29,10 @@ class WebsocketMessageProviderModel(MessageProviderModel):
         payload: Union[List, Dict, str, bytes]
 
     async def send(self, provider_id, message: Message) -> SendResult:
+        logger.info(f"send websocket message:{message}")
         app = get_app()
-        websocket_pool = app.ctx.ws_pool
+        websocket_pool = app.shared_ctx.ws_pool
+
         for connection in message.connections:
             await websocket_pool.send(
                 connection, data={"action": message.action, "payload": message.payload}

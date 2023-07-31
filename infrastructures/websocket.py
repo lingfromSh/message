@@ -1,12 +1,11 @@
 import asyncio
-import orjson
 from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
-
 from typing import Any
 
 import async_timeout
+import orjson
 from sanic.log import logger
 from ulid import ULID
 from websockets import exceptions as websockets_exceptions

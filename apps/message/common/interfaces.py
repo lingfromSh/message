@@ -2,8 +2,8 @@ import ulid
 from pydantic import BaseModel
 from pydantic import Field
 
-from apps.message.validators.types import ObjectID
 from apps.message.common.constants import MessageStatus
+from apps.message.validators.types import ObjectID
 
 
 class Message(BaseModel):

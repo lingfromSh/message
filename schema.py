@@ -1,6 +1,7 @@
 from typing import List
 
 import strawberry
+from sanic.log import logger
 
 from common.constants import HEALTHY
 from common.constants import UNHEALTHY
@@ -52,3 +53,5 @@ def setup(app) -> None:
         ),
         "/graphql",
     )
+
+    logger.info("setup graphql schema")
