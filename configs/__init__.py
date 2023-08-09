@@ -17,10 +17,10 @@ class Config:
     QUEUE = environ.group(QueueConfig)
 
     WEBSOCKET_PING_INTERVAL = environ.var(
-        default=600, name="WEBSOCKET_PING_INTERVAL", converter=int
+        default=6000, name="WEBSOCKET_PING_INTERVAL", converter=int
     )
     WEBSOCKET_PING_TIMEOUT = environ.var(
-        default=600, name="WEBSOCKET_PING_TIMEOUT", converter=int
+        default=6000, name="WEBSOCKET_PING_TIMEOUT", converter=int
     )
 
 

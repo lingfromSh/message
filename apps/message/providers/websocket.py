@@ -29,15 +29,24 @@ class WebsocketMessageProviderModel(MessageProviderModel):
         payload: Union[List, Dict, str, bytes]
 
     async def send(self, provider_id, message: Message) -> SendResult:
-        logger.info(f"send websocket message:{message}")
+        logger.info(f"sending websocket message:{message}")
         app = get_app()
-        websocket_pool = app.shared_ctx.ws_pool
+        websocket_pool = app.ctx.ws_pool
 
+        sent_list = set()
         for connection in message.connections:
-            await websocket_pool.send(
+            sent = await websocket_pool.send(
                 connection, data={"action": message.action, "payload": message.payload}
+            )
+            if not sent:
+                continue
+            sent_list.add(connection)
+
+        if sent_list:
+            return SendResult(
+                provider_id=provider_id, message=message, status=MessageStatus.SUCCEEDED
             )
 
         return SendResult(
-            provider_id=provider_id, message=message, status=MessageStatus.SUCCEEDED
+            provider_id=provider_id, message=message, status=MessageStatus.FAILED
         )

@@ -27,6 +27,7 @@ mongoengine = "^0.27.0"
 motor = "^3.2.0"
 umongo = "^3.1.0"
 apscheduler = "^3.10.1"
+crontabula = "^0.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"

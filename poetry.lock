@@ -644,6 +644,25 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
+name = "crontabula"
+version = "0.1.7"
+description = "Parse crontab expressions with Python"
+optional = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "crontabula-0.1.7-py3-none-any.whl", hash = "sha256:25761d0326b3bd061cd7b985f84cbe3377fd235958a0c92da868b520bad182b6"},
+    {file = "crontabula-0.1.7.tar.gz", hash = "sha256:52730eeaf5b5e1c5f2d5d070a36567a79541f8d767a2f52cd3a7464dc3974c90"},
+]
+
+[package.extras]
+cli = ["click"]
+
+[package.source]
+type = "legacy"
+url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
+reference = "sjtu"
+
+[[package]]
 name = "cryptography"
 version = "41.0.2"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
@@ -2901,4 +2920,4 @@ reference = "sjtu"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b93774d5c6e6e480fa162e1fd2a2b49f103f1ac5221080e86fc0142e3f55794c"
+content-hash = "1b37676fe2b1a6361e1129f837a2110bbf8229a2ea9314ae320a7be76db9fd9e"

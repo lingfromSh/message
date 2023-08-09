@@ -1,28 +1,19 @@
 from datetime import datetime
-from typing import Generic
 from typing import Iterable
 from typing import Optional
 
 import strawberry
 from strawberry.relay import Node
 from strawberry.relay import NodeID
-from strawberry.relay import NodeType
-from strawberry.relay.utils import from_base64
 from strawberry.types.info import Info  # noqa: TCH001
 from umongo.fields import Reference
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
-from apps.message.models import Message
 from apps.message.models import Provider
 from apps.message.validators.message import MessageOutputModel
 from apps.message.validators.provider import ProviderOutputModel
 from infrastructures.graphql import ObjectID
-
-
-@strawberry.type
-class MessageNode(Node):
-    ...
 
 
 @strawberry.experimental.pydantic.type(

@@ -25,7 +25,7 @@ class SendMessageInputModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    async def send(self):
+    async def send(self, save=True):
         provider_cls = get_provider(self.provider.type, self.provider.code)
         if provider_cls.need_configure:
             provider = provider_cls(**self.provider.config)
@@ -33,13 +33,16 @@ class SendMessageInputModel(BaseModel):
             provider = provider_cls()
         validated = provider.validate_message(config=self.realm)
         result = await provider.send(provider_id=self.provider.pk, message=validated)
-        data = self.model_dump()
-        data["realm"] = validated.model_dump()
-        data["status"] = result.status.value
-        data["provider"] = self.provider
         message = Message(**data)
-        await message.commit()
-        return message
+        if save:
+            data = self.model_dump()
+            data["realm"] = validated.model_dump()
+            data["status"] = result.status.value
+            data["provider"] = self.provider
+            await message.commit()
+            return result
+        else:
+            return result, message
 
 
 class MessageOutputModel(BaseModel):

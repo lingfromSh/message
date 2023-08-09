@@ -26,7 +26,7 @@ class Dependency(HealthChecker, metaclass=abc.ABCMeta):
             return object.__getattribute__(self, name)
 
     def _register(self):
-        setattr(self.app.shared_ctx, self.alias, self)
+        setattr(self.app.ctx, self.alias, self)
 
     @abc.abstractmethod
     async def prepare(self) -> bool:

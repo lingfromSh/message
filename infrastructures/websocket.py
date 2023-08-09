@@ -12,6 +12,8 @@ from websockets import exceptions as websockets_exceptions
 
 from common.depend import Dependency
 
+count = 0
+
 
 class WebsocketConnectionPoolDependency(
     Dependency, dependency_name="WebsocketPool", dependency_alias="ws_pool"
@@ -28,6 +30,7 @@ class WebsocketConnectionPoolDependency(
 
     def add_connection(self, connection) -> str:
         id = self._gen_id()
+        id = "01H6TY1T4P4PVC5XAJ3ZCEDJ3S"
         self.connections[id] = connection
         self.send_queues[id] = Queue()
         self.app.add_task(
@@ -100,9 +103,13 @@ class WebsocketConnectionPoolDependency(
                 await asyncio.sleep(0)
                 continue
             try:
+                global count
+                count += 1
                 if isinstance(data, (bytes, str, int)):
+                    data = str(data) + str(count)
                     await connection.send(data)
                 else:
+                    data["count"] = count
                     await connection.send(orjson.dumps(data).decode())
                 queue.task_done()
             except websockets_exceptions.ConnectionClosed:
@@ -166,9 +173,11 @@ class WebsocketConnectionPoolDependency(
             await asyncio.sleep(0)
         return False
 
-    async def send(self, connection_id: str, data: Any):
+    async def send(self, connection_id: str, data: Any) -> bool:
         if not self.is_alive(connection_id):
-            return
+            return False
         if connection_id not in self.send_queues:
-            return
+            return False
         await self.send_queues[connection_id].put(data)
+
+        return True

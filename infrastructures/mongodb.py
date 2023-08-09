@@ -17,7 +17,7 @@ class MongoDBDependency(Dependency, dependency_name="MongoDB", dependency_alias=
 
     async def prepare(self) -> bool:
         self._prepared = AsyncIOMotorClient(self.uri).message
-        self.app.shared_ctx.doc_instance = MotorAsyncIOInstance(self._prepared)
+        self.app.ctx.doc_instance = MotorAsyncIOInstance(self._prepared)
         self.is_prepared = True
         logger.info("dependency:MongoDB is prepared")
         return self.is_prepared

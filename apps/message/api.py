@@ -1,4 +1,3 @@
-import inspect
 from typing import AsyncIterable
 from typing import List
 from typing import Optional
