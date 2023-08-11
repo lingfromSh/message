@@ -1,15 +1,17 @@
+from typing import AsyncIterable
+from typing import List
+from typing import Optional
+
 import strawberry
-from typing import Optional, List, AsyncIterable
+
 from apps.endpoint.models import Endpoint
+from apps.endpoint.schemas.input import CreateEndpointInput
+from apps.endpoint.schemas.input import DestroyEndpointInput
+from apps.endpoint.schemas.input import UpdateEndpointInput
 from apps.endpoint.schemas.node import EndpointNode
-from apps.endpoint.schemas.input import (
-    CreateEndpointInput,
-    UpdateEndpointInput,
-    DestroyEndpointInput,
-)
 from apps.endpoint.validators.endpoint import EndpointOutputModel
-from infrastructures.graphql import connection
 from infrastructures.graphql import MessageConnection
+from infrastructures.graphql import connection
 
 
 @strawberry.type

@@ -8,9 +8,11 @@ import aio_pika
 import sanic
 import ulid
 from apscheduler.triggers.interval import IntervalTrigger
+from pydantic import BaseModel
 from sanic.log import logger
 
-from common.constants import TOPIC_EXCHANGE_NAME, SERVER_NAME
+from common.constants import SERVER_NAME
+from common.constants import TOPIC_EXCHANGE_NAME
 from common.exceptions import ImproperlyConfiguredException
 
 __topic_subscirbers__ = OrderedDict()
@@ -43,6 +45,7 @@ class TopicSubscriber:
     durable: bool = True
     # if deadletter is True, then create a deadletter. default: False
     deadletter: str = False
+    message_model: BaseModel
 
     def __init_subclass__(cls) -> None:
         topic = getattr(cls, "topic", None)
@@ -78,6 +81,7 @@ class TopicSubscriber:
         app: sanic.Sanic,
         message: aio_pika.abc.AbstractIncomingMessage,
         semaphore: asyncio.Semaphore = None,
+        context: dict = {},
     ):
         raise NotImplementedError
 
@@ -93,7 +97,7 @@ def register_consumer(app, queue_name, subscriber):
 
         async def func():
             from apps.message.models import Provider
-            from apps.plan.models import Plan
+            from apps.scheduler.models import Plan
 
             async with app.ctx.queue.acquire() as connection:
                 channel: aio_pika.Channel = await connection.channel()
@@ -104,10 +108,11 @@ def register_consumer(app, queue_name, subscriber):
                     # await queue.consume(partial(subscriber.handle, app, semaphore))
                     context = {}
                     context["providers"] = {p.pk: p async for p in Provider.find()}
-                    context["plans"] = {p.pk: p async for p in Plan.find()}
-                    async with queue.iterator() as q:
-                        async for m in q:
-                            await subscriber.handle(app, m, context=context)
+                    context["plans"] = {
+                        p.pk: p async for p in Plan.find({"is_enabled": True})
+                    }
+                    async for m in queue:
+                        await subscriber.handle(app, m, context=context)
                     logger.info("finished handling messages")
                 except aio_pika.exceptions.ChannelInvalidStateError:
                     logger.info(

@@ -7,17 +7,23 @@ from email.mime.text import MIMEText
 from ipaddress import IPv4Address
 from typing import List
 from typing import Optional
+from typing import Union
 
 import aiohttp
 from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import conint
+from pydantic import field_serializer
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
 from apps.message.common.interfaces import Message as BaseMessage
 from apps.message.common.interfaces import SendResult
 from apps.message.providers.base import MessageProviderModel
+from apps.message.validators.types import EndpointExID
+from apps.message.validators.types import EndpointTag
+from apps.message.validators.types import ETag
+from apps.message.validators.types import ExID
 
 
 class EmailContentType(enum.Enum):
@@ -56,14 +62,27 @@ class SMTPEmailMessageProviderModel(MessageProviderModel):
 
     class Message(BaseMessage):
         from_address: EmailStr
-        to_addresses: List[EmailStr]
-        cc_addresses: List[EmailStr]
-        bcc_addresses: List[EmailStr]
+        to_addresses: List[Union[EndpointTag, EndpointExID, EmailStr]]
+        cc_addresses: List[Union[EndpointTag, EndpointExID, EmailStr]]
+        bcc_addresses: List[Union[EndpointTag, EndpointExID, EmailStr]]
         subject: str
         content_type: EmailContentType = EmailContentType.TEXT
         content: str = ""
         # TODO: replace str with FileUrl
         attachments: List[str]
+
+        @field_serializer("to_addresses", "cc_addresses", "bcc_addresses")
+        def serialize_address_list(self, addrs, _info):
+            ret = []
+
+            for addr in addrs:
+                if isinstance(addr, ExID):
+                    ret.append(addr.serialize())
+                elif isinstance(addr, ETag):
+                    ret.extend(addr.serialize())
+                else:
+                    ret.append(addr)
+            return ret
 
     async def send(self, provider_id, message: Message, immediate=True):
         if not isinstance(message, self.message_model):

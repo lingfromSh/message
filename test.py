@@ -39,6 +39,17 @@ class Message(Document):
         collection_name = "messages"
 
 
+@instance.register
+class Endpoint(Document):
+    external_id = fields.StringField(required=True, unique=True)
+    tags = fields.ListField(fields.StringField(), required=False, allow_none=True)
+    websockets = fields.ListField(fields.StringField(), required=False, allow_none=True)
+    emails = fields.ListField(fields.EmailField(), required=False, allow_none=True)
+
+    class Meta:
+        collection_name = "endpoints"
+
+
 async def main():
     from umongo.fields import ObjectId
 
@@ -56,4 +67,87 @@ async def main():
     await client.message.providers.insert_many(ps)
 
 
-asyncio.run(main())
+# asyncio.run(main())
+
+from typing import Annotated
+from typing import List
+from typing import Union
+
+from asgiref.sync import async_to_sync
+from pydantic import BaseModel
+from pydantic import PlainValidator
+from pydantic import field_serializer
+
+
+def validate_etag(v: str):
+    assert v.startswith("#etg:")
+    return ETag(v[5:])
+
+
+def validate_exid(v: str):
+    assert v.startswith("#exid:")
+    return EExID(v[6:])
+
+
+class ETag:
+    def __init__(self, v) -> None:
+        self.v = v
+
+    def __str__(self) -> str:
+        return f"<ETag: '{self.v}'>"
+
+    __repr__ = __str__
+
+    def serialize(self):
+        async def get_endpoints():
+            endpoints = []
+            async for endpoint in Endpoint.find({"tag": self.v}):
+                endpoints.append(endpoint)
+            return endpoints
+
+        return async_to_sync(get_endpoints)()
+
+
+class EExID:
+    def __init__(self, v) -> None:
+        self.v = v
+
+    def __str__(self) -> str:
+        return f"<EExID: '{self.v}'>"
+
+    __repr__ = __str__
+
+    def serialize(self):
+        async def get_endpoint():
+            try:
+                await Endpoint.find_one({"external_id": self.v})
+            except Exception:
+                return None
+
+        return async_to_sync(get_endpoint)()
+
+
+EndpointTag = Annotated[ETag, PlainValidator(validate_etag)]
+EndpointExID = Annotated[EExID, PlainValidator(validate_exid)]
+
+
+class Model(BaseModel):
+    connections: List[Union[EndpointTag, EndpointExID, str]]
+
+    @field_serializer("connections")
+    def serialize_connections(self, connections, _info):
+        ret = []
+
+        for c in connections:
+            if isinstance(c, EExID):
+                ret.append(c.serialize())
+            elif isinstance(c, ETag):
+                ret.extend(c.serialize())
+            else:
+                ret.append(c)
+        return list(filter(lambda x: x, ret))
+
+
+model = Model(connections=["#etg:Flexiv AD", "#exid:studio:1", "JSDIUWEKALS123421SDJI"])
+print(model)
+print(model.model_dump())

@@ -13,8 +13,8 @@ from pydantic import model_validator
 from umongo.fields import Reference
 
 from apps.message.models import Provider
-from apps.plan.common.constants import PlanTriggerType
-from apps.plan.models import Plan
+from apps.scheduler.common.constants import PlanTriggerType
+from apps.scheduler.models import Plan
 
 from .types import ObjectID
 

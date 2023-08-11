@@ -1,11 +1,12 @@
-import strawberry
 import dataclasses
-from typing import List, Optional
-from apps.endpoint.validators.endpoint import (
-    CreateEndpointInputModel,
-    UpdateEndpointInputModel,
-    DestroyEndpointInputModel,
-)
+from typing import List
+from typing import Optional
+
+import strawberry
+
+from apps.endpoint.validators.endpoint import CreateEndpointInputModel
+from apps.endpoint.validators.endpoint import DestroyEndpointInputModel
+from apps.endpoint.validators.endpoint import UpdateEndpointInputModel
 
 
 @strawberry.input

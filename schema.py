@@ -11,12 +11,12 @@ from infrastructures.graphql import MessageGraphQLView
 
 
 def setup(app) -> None:
-    from apps.endpoint.api import Query as EndpointQuery
     from apps.endpoint.api import Mutation as EndpointMutation
+    from apps.endpoint.api import Query as EndpointQuery
     from apps.message.api import Mutation as MessageMutation
     from apps.message.api import Query as MessageQuery
-    from apps.plan.api import Mutation as PlanMutation
-    from apps.plan.api import Query as PlanQuery
+    from apps.scheduler.api import Mutation as PlanMutation
+    from apps.scheduler.api import Query as PlanQuery
 
     @strawberry.type
     class Query(MessageQuery, PlanQuery, EndpointQuery):

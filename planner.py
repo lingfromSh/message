@@ -18,7 +18,7 @@ setup_app(app)
 
 @app.before_server_start
 async def add_planner_task(app):
-    from apps.plan.task import enqueue_future_task
+    from apps.scheduler.task import enqueue_future_task
 
     app.ctx.task_scheduler.add_job(
         enqueue_future_task, trigger=IntervalTrigger(seconds=5)

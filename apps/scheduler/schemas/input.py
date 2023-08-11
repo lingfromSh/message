@@ -7,9 +7,9 @@ import strawberry
 from bson.objectid import ObjectId
 
 from apps.message.models import Provider
-from apps.plan.common.constants import PlanTriggerType
-from apps.plan.validators.plan import CreatePlanInputModel
-from apps.plan.validators.plan import DestroyPlanInputModel
+from apps.scheduler.common.constants import PlanTriggerType
+from apps.scheduler.validators.plan import CreatePlanInputModel
+from apps.scheduler.validators.plan import DestroyPlanInputModel
 from infrastructures.graphql import ObjectID
 
 

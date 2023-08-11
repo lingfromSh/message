@@ -8,7 +8,7 @@ from pydantic import Field
 from pydantic import computed_field
 from umongo.fields import Reference
 
-from apps.plan.common.constants import PlanExecutionStatus
+from apps.scheduler.common.constants import PlanExecutionStatus
 
 from .types import ObjectID
 

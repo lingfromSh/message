@@ -5,15 +5,15 @@ from typing import Optional
 import strawberry
 from strawberry.types import Info
 
-from apps.plan.common.constants import PlanExecutionStatus
-from apps.plan.common.constants import PlanTriggerType
-from apps.plan.models import Plan
-from apps.plan.models import PlanExecution
-from apps.plan.schemas.input import CreatePlanInput
-from apps.plan.schemas.input import DestroyPlanInput
-from apps.plan.schemas.node import PlanExecutionNode
-from apps.plan.schemas.node import PlanNode
-from apps.plan.validators.plan import PlanOutputModel
+from apps.scheduler.common.constants import PlanExecutionStatus
+from apps.scheduler.common.constants import PlanTriggerType
+from apps.scheduler.models import Plan
+from apps.scheduler.models import PlanExecution
+from apps.scheduler.schemas.input import CreatePlanInput
+from apps.scheduler.schemas.input import DestroyPlanInput
+from apps.scheduler.schemas.node import PlanExecutionNode
+from apps.scheduler.schemas.node import PlanNode
+from apps.scheduler.validators.plan import PlanOutputModel
 from infrastructures.graphql import MessageConnection
 from infrastructures.graphql import connection
 

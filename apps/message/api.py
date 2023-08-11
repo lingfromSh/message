@@ -74,6 +74,5 @@ class Mutation:
     @strawberry.mutation
     async def send_message(self, input: SendMessageInput) -> MessageNode:
         model = await input.to_pydantic()
-        message = await model.send()
-        output = MessageOutputModel.model_validate(message)
-        return output
+        _, message = await model.send(sync=False)
+        return MessageOutputModel.model_validate(message)

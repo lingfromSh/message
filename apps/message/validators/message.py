@@ -1,5 +1,7 @@
+import orjson
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
+from aio_pika.message import Message as QueueMessage
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -8,10 +10,11 @@ from pydantic import computed_field
 from umongo.fields import Reference
 
 from apps.message.common.constants import MessageStatus
+from apps.message.common.interfaces import SendResult
 from apps.message.models import Message
 from apps.message.models import Provider
 from apps.message.utils import get_provider
-
+from utils import get_app
 from .types import ObjectID
 
 
@@ -25,24 +28,50 @@ class SendMessageInputModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    async def send(self, save=True):
+    async def send(self, save=True, sync=True) -> Tuple[SendResult, Message]:
         provider_cls = get_provider(self.provider.type, self.provider.code)
         if provider_cls.need_configure:
             provider = provider_cls(**self.provider.config)
         else:
             provider = provider_cls()
+
         validated = provider.validate_message(config=self.realm)
-        result = await provider.send(provider_id=self.provider.pk, message=validated)
+        data = self.model_dump()
+        data["realm"] = validated.model_dump()
+        data["status"] = MessageStatus.SENDING.value
+        data["provider"] = self.provider
         message = Message(**data)
-        if save:
-            data = self.model_dump()
-            data["realm"] = validated.model_dump()
-            data["status"] = result.status.value
-            data["provider"] = self.provider
+
+        if save and sync is False:
             await message.commit()
-            return result
+
+        if sync:
+            result = await provider.send(
+                provider_id=self.provider.pk, message=validated
+            )
+            message.status = result.status.value
+
+            if save:
+                await message.commit()
         else:
-            return result, message
+            from apps.message.subscriber import ImmediateMessageTopicSubscriber
+
+            result = SendResult(
+                provider_id=self.provider.pk,
+                message=validated,
+                status=MessageStatus.SENDING,
+            )
+            app = get_app()
+            async with app.ctx.queue.acquire() as connection:
+                queue_message = ImmediateMessageTopicSubscriber.message_model(
+                    provider=self.provider, message=message
+                )
+                await ImmediateMessageTopicSubscriber.notify(
+                    connection,
+                    message=QueueMessage(body=orjson.dumps(queue_message.model_dump())),
+                )
+
+        return result, message
 
 
 class MessageOutputModel(BaseModel):

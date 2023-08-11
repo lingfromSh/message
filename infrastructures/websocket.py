@@ -12,7 +12,9 @@ from websockets import exceptions as websockets_exceptions
 
 from common.depend import Dependency
 
-count = 0
+
+PING = "#ping"
+PONG = "#pong"
 
 
 class WebsocketConnectionPoolDependency(
@@ -30,7 +32,6 @@ class WebsocketConnectionPoolDependency(
 
     def add_connection(self, connection) -> str:
         id = self._gen_id()
-        id = "01H6TY1T4P4PVC5XAJ3ZCEDJ3S"
         self.connections[id] = connection
         self.send_queues[id] = Queue()
         self.app.add_task(
@@ -103,13 +104,9 @@ class WebsocketConnectionPoolDependency(
                 await asyncio.sleep(0)
                 continue
             try:
-                global count
-                count += 1
                 if isinstance(data, (bytes, str, int)):
-                    data = str(data) + str(count)
                     await connection.send(data)
                 else:
-                    data["count"] = count
                     await connection.send(orjson.dumps(data).decode())
                 queue.task_done()
             except websockets_exceptions.ConnectionClosed:
@@ -143,13 +140,13 @@ class WebsocketConnectionPoolDependency(
         get_pong = asyncio.Event()
 
         async def wait_pong(data):
-            if data != "pong":
+            if data != PONG:
                 return
             get_pong.set()
 
         while True:
             get_pong.clear()
-            await self.send(connection_id, "ping")
+            await self.send(connection_id, PING)
             listener_id = self.add_listener(connection_id, wait_pong)
 
             with suppress(asyncio.TimeoutError):

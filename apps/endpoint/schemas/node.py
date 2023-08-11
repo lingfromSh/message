@@ -1,6 +1,10 @@
+from typing import List
+from typing import Optional
+
 import strawberry
-from strawberry.relay import Node, NodeID
-from typing import List, Optional
+from strawberry.relay import Node
+from strawberry.relay import NodeID
+
 from apps.endpoint.validators.endpoint import EndpointOutputModel
 from infrastructures.graphql import ObjectID
 

@@ -1,6 +1,5 @@
-import asyncio
+from functools import partial
 
-import orjson
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sanic import Sanic
 from sanic.log import logger
@@ -39,7 +38,8 @@ async def prepare_websocket_pool_dependency(app):
 
 async def acquire_worker_id(app):
     # TODO: if it fails to get worker id, server won't serve any request.
-    app.ctx.worker_id = await app.ctx.cache.incr("worker") % 4
+    app.ctx.workers = 4
+    app.ctx.worker_id = await app.ctx.cache.incr("worker") % app.ctx.workers
     logger.info(f"Worker: {app.ctx.worker_id}")
 
 
@@ -58,9 +58,12 @@ async def stop_task_scheduler(app):
 
 
 async def handle_websocket(request, ws):
+    from apps.endpoint.listeners import register_websocket_endpoint
+
     ctx = request.app.ctx
     con_id = ctx.ws_pool.add_connection(ws)
     logger.info(f"new connection connected -> {con_id}")
+    ctx.ws_pool.add_listener(con_id, partial(register_websocket_endpoint, con_id))
     await ctx.ws_pool.send(
         con_id, data={"action": "on.connect", "payload": {"connection_id": con_id}}
     )

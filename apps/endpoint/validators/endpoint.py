@@ -1,12 +1,15 @@
-from apps.endpoint.models import Endpoint
+from typing import List
+from typing import Optional
+
 from bson.objectid import ObjectId
-from typing import Optional, List
-from pydantic import EmailStr
-from pydantic import model_validator
-from pydantic import computed_field
-from pydantic import Field
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import EmailStr
+from pydantic import Field
+from pydantic import computed_field
+from pydantic import model_validator
+
+from apps.endpoint.models import Endpoint
 
 from .types import ObjectID
 
@@ -81,3 +84,35 @@ class EndpointOutputModel(BaseModel):
     @property
     def global_id(self) -> str:
         return self.oid
+
+
+class ETag:
+    def __init__(self, v: str) -> None:
+        self.v = v
+
+    def __str__(self) -> str:
+        return f"#etag:{self.v}"
+
+    __repr__ = __str__
+
+    async def decode(self):
+        endpoints = []
+        async for endpoint in Endpoint.find({"tags": self.v}):
+            endpoints.append(endpoint)
+        return endpoints
+
+
+class ExID:
+    def __init__(self, v: str) -> None:
+        self.v = v
+
+    def __str__(self) -> str:
+        return f"#exid:{self.v}"
+
+    __repr__ = __str__
+
+    async def decode(self):
+        try:
+            return await Endpoint.find_one({"external_id": self.v})
+        except Exception:
+            return None

@@ -1,7 +1,8 @@
-from utils import get_app
 from umongo import Document
 from umongo import fields
+
 from common.constants import SERVER_NAME
+from utils import get_app
 
 app = get_app()
 
