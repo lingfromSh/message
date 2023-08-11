@@ -189,6 +189,6 @@ class ImmediateMessageTopicSubscriber(TopicSubscriber):
                 if result.status == MessageStatus.SUCCEEDED:
                     db_message.status = message.status
                     db_message.updated_at = message.updated_at
-                    # await db_message.commit()
+                    await db_message.commit()
             except Exception:
                 logger.exception("message is not valid - skip this task")
