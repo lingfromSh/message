@@ -1,8 +1,10 @@
-import orjson
 import asyncio
-from sanic.log import logger
-from aio_pika.message import Message
 from datetime import timedelta
+
+import orjson
+from aio_pika.message import Message
+from sanic.log import logger
+
 from apps.endpoint.models import Endpoint
 from apps.endpoint.subscriber import AddEndpointWebsocketTopicSubscriber
 from apps.endpoint.subscriber import RemoveEndpointWebsocketTopicSubscriber

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from functools import partial
 from collections import OrderedDict
 from datetime import timedelta
+from functools import partial
 
 import aio_pika
 import sanic

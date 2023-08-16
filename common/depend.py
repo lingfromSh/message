@@ -1,8 +1,6 @@
 import abc
 from typing import Any
 
-from sanic.log import logger
-
 from common.health import HealthChecker
 
 

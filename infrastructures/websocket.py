@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
@@ -9,10 +8,8 @@ import async_timeout
 import orjson
 from sanic.log import logger
 from ulid import ULID
-from websockets import exceptions as websockets_exceptions
 
 from common.depend import Dependency
-
 
 PING = "#ping"
 PONG = "#pong"
@@ -131,7 +128,6 @@ class WebsocketConnectionPoolDependency(
         while await self.is_alive(connection):
             try:
                 data = queue.get_nowait()
-                logger.info(f"new message to send: {data}")
             except QueueEmpty:
                 await asyncio.sleep(0)
                 continue
@@ -186,7 +182,7 @@ class WebsocketConnectionPoolDependency(
                 # this connection is closed
                 await asyncio.sleep(self.app.config.WEBSOCKET_PING_INTERVAL)
             else:
-                break
+                await self.remove_connection(connection_id)
 
     async def wait_closed(self, connection_id: str):
         """

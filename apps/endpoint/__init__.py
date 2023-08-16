@@ -1,5 +1,3 @@
 from .models import Endpoint
-from .subscriber import (
-    RemoveEndpointWebsocketTopicSubscriber,
-    AddEndpointWebsocketTopicSubscriber,
-)
+from .subscriber import AddEndpointWebsocketTopicSubscriber
+from .subscriber import RemoveEndpointWebsocketTopicSubscriber

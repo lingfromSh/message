@@ -1,10 +1,10 @@
-from sanic.log import logger
 from datetime import UTC
 from datetime import datetime
 
 import orjson
 from aio_pika import DeliveryMode
 from aio_pika.message import Message
+from sanic.log import logger
 
 from apps.message.subscriber import InQueueMessageTopicSubscriber
 

@@ -1,8 +1,9 @@
-import orjson
 from datetime import datetime
-from typing import Optional, Tuple
-from aio_pika.message import Message as QueueMessage
+from typing import Optional
+from typing import Tuple
 
+import orjson
+from aio_pika.message import Message as QueueMessage
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
@@ -15,6 +16,7 @@ from apps.message.models import Message
 from apps.message.models import Provider
 from apps.message.utils import get_provider
 from utils import get_app
+
 from .types import ObjectID
 
 

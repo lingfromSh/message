@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 import orjson
 
 if TYPE_CHECKING:
@@ -8,6 +10,7 @@ if TYPE_CHECKING:
     from sanic import Sanic
 
 from sanic.log import logger
+
 from apps.endpoint.models import Endpoint
 from common.command import TopicSubscriber
 

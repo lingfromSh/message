@@ -1,3 +1,4 @@
+from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sanic import Sanic
 from sanic.log import logger
@@ -49,6 +50,7 @@ async def setup_task_scheduler(app):
     scheduler = AsyncIOScheduler()
     scheduler.start()
     app.ctx.task_scheduler = scheduler
+    app.ctx.task_scheduler.add_job(app.purge_tasks, trigger=IntervalTrigger(minutes=1))
 
 
 async def stop_task_scheduler(app):
