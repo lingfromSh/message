@@ -16,12 +16,8 @@ class Config:
     DATABASE = environ.group(DatabaseConfig)
     QUEUE = environ.group(QueueConfig)
 
-    WEBSOCKET_PING_INTERVAL = environ.var(
-        default=30, name="WEBSOCKET_PING_INTERVAL", converter=int
-    )
-    WEBSOCKET_PING_TIMEOUT = environ.var(
-        default=30, name="WEBSOCKET_PING_TIMEOUT", converter=int
-    )
+    WEBSOCKET_PING_INTERVAL = environ.var(default=30, converter=int)
+    WEBSOCKET_PING_TIMEOUT = environ.var(default=30, converter=int)
 
 
 config = environ.to_config(Config)

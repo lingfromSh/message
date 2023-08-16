@@ -55,6 +55,7 @@ services:
       REDIS_MASTER_SET: "redis"
       REDIS_MASTER_HOST: "redis-master"
       REDIS_MASTER_PASSWORD: "communication-2023"
+      REDIS_SENTINEL_PASSWORD: "communication-2023"
     depends_on:
       - redis-master
       - redis-slave
@@ -93,7 +94,7 @@ services:
       MESSAGE_CACHE_SENTINEL_PORT: "26379"
       MESSAGE_CACHE_SENTINEL_PASSWORD: "communication-2023"
     volumes:
-      - "/Users/ling/Documents/personal-working/message:/app"
+      - "./:/app"
     command: "make dev"
     tty: true
     depends_on:
@@ -103,4 +104,4 @@ services:
       - rabbitmq
       - mongodb-primary
     deploy:
-      replicas: 2
+      replicas: 1
