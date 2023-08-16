@@ -2,6 +2,7 @@ from umongo import Document
 from umongo import EmbeddedDocument
 from umongo import fields
 
+from common.constants import SERVER_NAME
 from utils import get_app
 
 app = get_app()
@@ -46,7 +47,14 @@ class Plan(Document):
 
     class Meta:
         collection_name = "plans"
-        indexes = ["triggers.at"]
+        indexes = (
+            "triggers.at",
+            "triggers.type",
+            "triggers.repeat_time",
+            "triggers.start_time",
+            "triggers.end_time",
+            "is_enabled",
+        )
 
 
 @app.ctx.doc_instance.register
@@ -61,3 +69,9 @@ class PlanExecution(Document):
 
     class Meta:
         collection_name = "plan_executions"
+        indexes = ("plan", "status", "-time_to_execute", "-created_at", "-updated_at")
+
+
+if app.name == SERVER_NAME:
+    app.add_task(Plan.ensure_indexes())
+    app.add_task(PlanExecution.ensure_indexes())

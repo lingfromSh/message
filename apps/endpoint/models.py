@@ -16,6 +16,7 @@ class Endpoint(Document):
 
     class Meta:
         collection_name = "endpoints"
+        indexes = ("external_id", "tags", "websockets", "emails")
 
 
 if app.name == SERVER_NAME:

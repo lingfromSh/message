@@ -2,6 +2,7 @@ from umongo import Document
 from umongo import fields
 
 from utils import get_app
+from common.constants import SERVER_NAME
 
 app = get_app()
 
@@ -18,6 +19,7 @@ class Provider(Document):
 
     class Meta:
         collection_name = "providers"
+        indexes = ("type", "code", "name", "-created_at", "-updated_at")
 
 
 @app.ctx.doc_instance.register
@@ -31,7 +33,9 @@ class Message(Document):
 
     class Meta:
         collection_name = "messages"
+        indexes = ("provider", "status", "-created_at", "-updated_at")
 
 
-app.add_task(Provider.ensure_indexes())
-app.add_task(Message.ensure_indexes())
+if app.name == SERVER_NAME:
+    app.add_task(Provider.ensure_indexes())
+    app.add_task(Message.ensure_indexes())
