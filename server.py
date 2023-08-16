@@ -12,6 +12,7 @@ app = Sanic(
     dumps=orjson.dumps,
     loads=orjson.loads,
     config=ConfigProxy(),
+    log_config={},
 )
 
 setup_app(app)

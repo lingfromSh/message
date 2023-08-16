@@ -1,5 +1,3 @@
-from functools import partial
-
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sanic import Sanic
 from sanic.log import logger
@@ -59,15 +57,21 @@ async def stop_task_scheduler(app):
 
 async def handle_websocket(request, ws):
     from apps.endpoint.listeners import register_websocket_endpoint
+    from apps.endpoint.listeners import unregister_websocket_endpoint
 
-    ctx = request.app.ctx
-    con_id = ctx.ws_pool.add_connection(ws)
-    logger.info(f"new connection connected -> {con_id}")
-    ctx.ws_pool.add_listener(con_id, partial(register_websocket_endpoint, con_id))
-    await ctx.ws_pool.send(
-        con_id, data={"action": "on.connect", "payload": {"connection_id": con_id}}
-    )
-    await ctx.ws_pool.wait_closed(con_id)
+    con_id = None
+    try:
+        ctx = request.app.ctx
+        con_id = await ctx.ws_pool.add_connection(ws)
+        logger.info(f"new connection connected -> {con_id}")
+        await ctx.ws_pool.add_listener(con_id, register_websocket_endpoint)
+        await ctx.ws_pool.add_close_callback(con_id, unregister_websocket_endpoint)
+        await ctx.ws_pool.send(
+            con_id, data={"action": "on.connect", "payload": {"connection_id": con_id}}
+        )
+        await ctx.ws_pool.wait_closed(con_id)
+    finally:
+        request.app.add_task(request.app.ctx.ws_pool.remove_connection(con_id))
 
 
 def setup_app(application: Sanic):

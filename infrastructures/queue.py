@@ -32,7 +32,7 @@ class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="que
         self.is_prepared = False
 
         try:
-            self._prepared = Pool(connection_pool_factory(self.app), max_size=4)
+            self._prepared = Pool(connection_pool_factory(self.app), max_size=10)
             self.is_prepared = True
         except asyncio.TimeoutError:
             self._prepared = None

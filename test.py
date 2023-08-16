@@ -148,6 +148,12 @@ class Model(BaseModel):
         return list(filter(lambda x: x, ret))
 
 
-model = Model(connections=["#etg:Flexiv AD", "#exid:studio:1", "JSDIUWEKALS123421SDJI"])
-print(model)
-print(model.model_dump())
+async def main():
+    async with await client.start_session() as session:
+        async with session.start_transaction():
+            endpoint = await Endpoint.find_one({"external_id": "studio:1"})
+            endpoint.websockets = ["test"]
+            await endpoint.commit()
+
+
+asyncio.run(main())

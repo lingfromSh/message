@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 from collections import OrderedDict
 from datetime import timedelta
 
@@ -39,7 +40,7 @@ def remove_topic_subscriber(topic: str):
 
 
 class TopicSubscriber:
-    type: str
+    type: str = "broadcast"
     topic: str
     # default: True
     durable: bool = True
@@ -69,10 +70,10 @@ class TopicSubscriber:
     async def delay_notify(
         cls, connection, message: aio_pika.abc.AbstractMessage, delay: timedelta
     ):
-        if delay <= 0:
+        if delay.total_seconds() <= 0:
             await cls.notify(connection, message)
         else:
-            message.expiration = delay
+            message.expiration = delay.total_seconds()
             await publish(connection, message=message, topic=f"{cls.topic}.deadletter")
 
     @classmethod
@@ -105,13 +106,12 @@ def register_consumer(app, queue_name, subscriber):
                     queue_name, durable=True
                 )
                 try:
-                    # await queue.consume(partial(subscriber.handle, app, semaphore))
                     context = {}
-                    context["providers"] = {p.pk: p async for p in Provider.find()}
-                    context["plans"] = {
-                        p.pk: p async for p in Plan.find({"is_enabled": True})
-                    }
-                    async for m in queue:
+                    # context["providers"] = {p.pk: p async for p in Provider.find()}
+                    # context["plans"] = {
+                    #     p.pk: p async for p in Plan.find({"is_enabled": True})
+                    # }
+                    async for m in queue.iterator():
                         await subscriber.handle(app, m, context=context)
                     logger.info("finished handling messages")
                 except aio_pika.exceptions.ChannelInvalidStateError:
@@ -140,9 +140,12 @@ async def setup(app: sanic.Sanic, connection: aio_pika.abc.AbstractConnection) -
             TOPIC_EXCHANGE_NAME, type=aio_pika.ExchangeType.TOPIC, durable=True
         )
         for subscriber in __topic_subscirbers__.values():
-            queue_name = (
-                f"message.topic.sub.{subscriber.topic}.queue.{app.ctx.worker_id}"
-            )
+            if subscriber.type == "broadcast":
+                queue_name = (
+                    f"message.topic.sub.{subscriber.topic}.queue.{app.ctx.worker_id}"
+                )
+            else:
+                queue_name = f"message.topic.sub.{subscriber.topic}.queue"
             queue = await channel.declare_queue(
                 name=queue_name, durable=subscriber.durable
             )
