@@ -20,4 +20,7 @@ class Endpoint(Document):
 
 
 if app.name == SERVER_NAME:
-    app.add_task(Endpoint.ensure_indexes())
+    try:
+        app.add_task(Endpoint.ensure_indexes())
+    except Exception:
+        pass

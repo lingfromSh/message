@@ -7,6 +7,7 @@ from .api import APIConfig
 from .cache import CacheConfig
 from .database import DatabaseConfig
 from .queue import QueueConfig
+from sanic.log import logger
 
 
 @environ.config(prefix="MESSAGE")
@@ -16,11 +17,21 @@ class Config:
     DATABASE = environ.group(DatabaseConfig)
     QUEUE = environ.group(QueueConfig)
 
-    WEBSOCKET_PING_INTERVAL = environ.var(default=30, converter=int)
-    WEBSOCKET_PING_TIMEOUT = environ.var(default=30, converter=int)
+    WEBSOCKET_PING_INTERVAL = environ.var(default=5, converter=int)
+    WEBSOCKET_PING_TIMEOUT = environ.var(default=5, converter=int)
 
 
 config = environ.to_config(Config)
+
+print("==== Server Env Config ====")
+print("[API Env Config]")
+print(config.API)
+print("[CACHE Env Config]")
+print(config.CACHE)
+print("[DATABASE Env Config]")
+print(config.DATABASE)
+print("[QUEUE Env Config]")
+print(config.QUEUE)
 
 
 class ConfigProxy(SanicConfig):

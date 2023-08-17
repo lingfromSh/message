@@ -1,5 +1,5 @@
 debug:
-	@docker exec -ti message /bin/bash
+	@docker exec -ti message-message-1 /bin/bash
 
 i:
 	pip3 install poetry && poetry install

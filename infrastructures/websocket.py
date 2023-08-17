@@ -58,7 +58,9 @@ class WebsocketConnectionPoolDependency(
 
     async def add_listener(self, connection_id, handler) -> str:
         async with self.lock:
-            self.listeners.setdefault(connection_id, []).append(handler)
+            id = self._gen_id()
+            self.listeners.setdefault(connection_id, {}).update({id: handler})
+            return id
 
     async def remove_listener(self, connection_id, listener_id):
         async with self.lock:
@@ -143,18 +145,21 @@ class WebsocketConnectionPoolDependency(
     async def recv_task(self, queue, connection):
         while await self.is_alive(connection):
             try:
-                await queue.put(await connection.recv())
+                data = await connection.recv()
+                await queue.put(data)
+                logger.info(f"recv message: {data} from connection: {connection._id}")
             except Exception as err:
                 break
 
     async def notify_task(self, connection_id):
         while await self.is_alive(connection_id):
             try:
+                logger.info(f"notify connection: {connection_id}'s listeners")
                 data = await self.recv_queues[connection_id].get()
-                for listener in self.listeners.get(connection_id, []):
-                    self.app.add_task(listener(connection_id, data))
+                for listener in self.listeners.get(connection_id, {}).values():
+                    await listener(connection_id, data)
             except Exception as err:
-                ...
+                print(err)
 
     async def is_alive_task(self, connection_id: str):
         if hasattr(connection_id, "_id"):
@@ -162,15 +167,15 @@ class WebsocketConnectionPoolDependency(
 
         get_pong = asyncio.Event()
 
-        async def wait_pong(data):
+        async def wait_pong(connection_id, data):
             if data != PONG:
                 return
             get_pong.set()
 
-        await self.add_listener(connection_id, wait_pong)
         while True:
             get_pong.clear()
             await self.send(connection_id, PING)
+            listener_id = await self.add_listener(connection_id, wait_pong)
 
             with suppress(asyncio.TimeoutError):
                 async with async_timeout.timeout(
@@ -178,6 +183,7 @@ class WebsocketConnectionPoolDependency(
                 ):
                     await get_pong.wait()
 
+            await self.remove_listener(connection_id, listener_id)
             if get_pong.is_set():
                 # this connection is closed
                 await asyncio.sleep(self.app.config.WEBSOCKET_PING_INTERVAL)

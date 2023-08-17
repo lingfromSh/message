@@ -37,5 +37,8 @@ class Message(Document):
 
 
 if app.name == SERVER_NAME:
-    app.add_task(Provider.ensure_indexes())
-    app.add_task(Message.ensure_indexes())
+    try:
+        app.add_task(Provider.ensure_indexes())
+        app.add_task(Message.ensure_indexes())
+    except Exception:
+        pass

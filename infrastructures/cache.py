@@ -18,7 +18,6 @@ class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cac
             "retry_on_timeout": True,
             "retry_on_error": [BusyLoadingError, ConnectionError],
         }
-        print(sentinel_password_kwargs)
         self._sentinel = Sentinel(
             sentinels=[(cache_config.SENTINEL_HOST, cache_config.SENTINEL_PORT)],
             sentinel_kwargs={**sentinel_password_kwargs, **retry_kwargs},

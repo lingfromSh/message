@@ -73,5 +73,8 @@ class PlanExecution(Document):
 
 
 if app.name == SERVER_NAME:
-    app.add_task(Plan.ensure_indexes())
-    app.add_task(PlanExecution.ensure_indexes())
+    try:
+        app.add_task(Plan.ensure_indexes())
+        app.add_task(PlanExecution.ensure_indexes())
+    except Exception:
+        pass
