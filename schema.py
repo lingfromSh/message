@@ -1,6 +1,7 @@
 from typing import List
 
 import strawberry
+from strawberry.extensions import ParserCache, ValidationCache
 from sanic.log import logger
 
 from common.constants import HEALTHY
@@ -47,6 +48,10 @@ def setup(app) -> None:
             schema=strawberry.Schema(
                 query=Query,
                 mutation=Mutation,
+                extensions=[
+                    ParserCache(),
+                    ValidationCache(),
+                ],
                 config=MessageGraphQLConfig(
                     relay_default_page_size=app.config.API.GRAPHQL_RELAY_DEFAULT_PAGE_SIZE,
                     relay_min_page_size=app.config.API.GRAPHQL_RELAY_MIN_PAGE_SIZE,
