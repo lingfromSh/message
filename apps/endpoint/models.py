@@ -2,7 +2,6 @@ import orjson
 from umongo import Document
 from umongo import fields
 
-from common.constants import SERVER_NAME
 from utils import get_app
 
 app = get_app()
@@ -31,4 +30,3 @@ class Endpoint(Document):
     class Meta:
         collection_name = "endpoints"
         indexes = ("external_id", "tags", "websockets", "emails")
-

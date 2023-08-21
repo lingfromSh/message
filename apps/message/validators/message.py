@@ -55,20 +55,18 @@ class SendMessageInputModel(BaseModel):
             message=validated,
             status=MessageStatus.SENDING,
         )
-        app = get_app()
-        async with app.ctx.queue.acquire() as connection:
-            queue_message = ImmediateMessageTopicSubscriber.message_model(
-                provider={
-                    "oid": str(self.provider.pk),
-                    "type": self.provider.type,
-                    "code": self.provider.code,
-                },
-                message={"oid": str(message.pk), "realm": message.realm},
-            )
-            await ImmediateMessageTopicSubscriber.notify(
-                None,
-                message=QueueMessage(body=queue_message.model_dump_json().encode()),
-            )
+        queue_message = ImmediateMessageTopicSubscriber.message_model(
+            provider={
+                "oid": str(self.provider.pk),
+                "type": self.provider.type,
+                "code": self.provider.code,
+            },
+            message={"oid": str(message.pk), "realm": message.realm},
+        )
+        await ImmediateMessageTopicSubscriber.notify(
+            None,
+            message=QueueMessage(body=queue_message.model_dump_json().encode()),
+        )
         return result, message
 
 

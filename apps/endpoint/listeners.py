@@ -5,7 +5,6 @@ import orjson
 from aio_pika.message import Message
 from sanic.log import logger
 
-from apps.endpoint.models import Endpoint
 from apps.endpoint.subscriber import AddEndpointWebsocketTopicSubscriber
 from apps.endpoint.subscriber import RemoveEndpointWebsocketTopicSubscriber
 from utils import get_app

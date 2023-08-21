@@ -1,8 +1,10 @@
 import asyncio
-import cProfile, pstats
-import ulid
+import cProfile
+import pstats
+from typing import List
+from typing import Optional
 
-from typing import Optional, List
+import ulid
 
 MONGODB_HOST = "localhost"
 MONGODB_PORT = 27017
@@ -11,7 +13,6 @@ MONGODB_PASSWORD = "communication-2023"
 
 # umongo
 from motor.motor_asyncio import AsyncIOMotorClient
-
 
 client = AsyncIOMotorClient(
     f"mongodb://{MONGODB_USER}:{MONGODB_PASSWORD}@{MONGODB_HOST}:{MONGODB_PORT}",
@@ -22,7 +23,8 @@ uid = str(ulid.ULID())
 
 
 async def test_umongo_insert(amount):
-    from umongo import Document, fields
+    from umongo import Document
+    from umongo import fields
     from umongo.frameworks.motor_asyncio import MotorAsyncIOInstance
 
     instance = MotorAsyncIOInstance(client.message)
@@ -40,7 +42,8 @@ async def test_umongo_insert(amount):
 
 
 async def test_umongo_query(amount):
-    from umongo import Document, fields
+    from umongo import Document
+    from umongo import fields
     from umongo.frameworks.motor_asyncio import MotorAsyncIOInstance
 
     instance = MotorAsyncIOInstance(client.message)
@@ -56,7 +59,8 @@ async def test_umongo_query(amount):
         endpoint
 
 
-from beanie import Document as BeanieDocument, init_beanie
+from beanie import Document as BeanieDocument
+from beanie import init_beanie
 
 
 async def test_beanie_insert(amount):
@@ -124,7 +128,9 @@ async def asyncio_benchmark():
 
 
 def test_mongoengine_insert(amount):
-    from mongoengine import Document, fields, connect
+    from mongoengine import Document
+    from mongoengine import connect
+    from mongoengine import fields
 
     connect("message", username="communication", password="communication-2023")
 
@@ -140,7 +146,9 @@ def test_mongoengine_insert(amount):
 
 
 def test_mongoengine_query(amount):
-    from mongoengine import Document, fields, connect
+    from mongoengine import Document
+    from mongoengine import connect
+    from mongoengine import fields
 
     connect("message", username="communication", password="communication-2023")
 

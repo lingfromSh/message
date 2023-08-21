@@ -16,7 +16,9 @@ class MongoDBDependency(Dependency, dependency_name="MongoDB", dependency_alias=
         )
 
     async def prepare(self) -> bool:
-        self._db_client = AsyncIOMotorClient(self.uri)
+        self._db_client = AsyncIOMotorClient(
+            self.uri, maxPoolSize=200, maxConnecting=200
+        )
         self._prepared = self._db_client.message
         self.app.ctx.doc_instance = MotorAsyncIOInstance(self._prepared)
         self.app.ctx.db_client = self._db_client

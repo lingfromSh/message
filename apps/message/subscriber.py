@@ -62,21 +62,6 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                 task = FuturePlanTask.model_validate_json(message.body)
                 errors = []
                 for sub_plan in task.sub_plans:
-                    # try:
-                    #     if ObjectId(sub_plan.provider) in context.get("providers", {}):
-                    #         db_provider = context["providers"][
-                    #             ObjectId(sub_plan.provider)
-                    #         ]
-                    #     else:
-                    #         db_provider = await Provider.find_one(
-                    #             {"_id": ObjectId(sub_plan.provider)}
-                    #         )
-                    # except Exception:
-                    #     logger.info(
-                    #         f"provider: {sub_plan.provider} does not exist - skip this sub plan"
-                    #     )
-                    #     continue
-
                     try:
                         provider = get_provider("websocket", "websocket")(
                             **{}
@@ -124,16 +109,6 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                     execution["status"] = PlanExecutionStatus.SUCCEEDED
 
                 events.append(PlanExecutionCreateEvent(**execution))
-
-                # if ObjectId(task.id) in context.get("plans", {}):
-                #     plan = context["plans"][ObjectId(task.id)]
-                # else:
-                #     plan = await Plan.find_one({"_id": ObjectId(task.id)})
-                # for trigger in plan.triggers:
-                #     if trigger.repeat_time > 0:
-                #         trigger.repeat_time -= 1
-                # await plan.commit()
-
                 events.append(PlanTriggerRepeatTimeDecreaseEvent(plan_id=task.id))
 
                 for event in events:
@@ -176,7 +151,7 @@ class ImmediateMessageTopicSubscriber(TopicSubscriber):
                 validated = provider.validate_message(config=task.message.realm)
 
                 result = await provider.send(task.provider.oid, validated)
-                
+
                 if result.status == MessageStatus.SUCCEEDED:
                     await Message.collection.update_one(
                         {"_id": ObjectId(task.message.oid)},
