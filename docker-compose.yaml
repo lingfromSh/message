@@ -97,6 +97,8 @@ services:
       - "./:/app"
     ports:
       - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
     tty: true
     depends_on:
       - redis-master

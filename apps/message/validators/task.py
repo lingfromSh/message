@@ -6,8 +6,11 @@ from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_validator
+
+from apps.message.common.constants import MessageProviderType
 
 
 class FutureSubPlanTask(BaseModel):
@@ -46,27 +49,45 @@ class FuturePlanTriggersTask(BaseModel):
 
 
 class FuturePlanTask(BaseModel):
-    id: str = Field(alias="pk")
+    id: str
     model_config = ConfigDict(from_attributes=True)
     is_enabled: bool
     triggers: List[FuturePlanTriggersTask]
     sub_plans: List[FutureSubPlanTask]
 
     @field_validator("id", mode="before")
+    @classmethod
     def validate_id(cls, v) -> str:
         return str(v)
+
+
+class ImmediateTaskProvider(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    oid: str
+    type: MessageProviderType
+    code: str
+    config: Optional[dict] = {}
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v):
+        return MessageProviderType(v)
+
+    @field_serializer("type")
+    def serialize_type(self, v):
+        return v.value
+
+
+class ImmediateTaskMessage(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    oid: str
+    realm: dict
 
 
 class ImmediateTask(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    provider: str
-    message: str
-
-    @field_validator("provider", "message", mode="before")
-    def validate_provider(cls, v):
-        if isinstance(v, ObjectId):
-            return str(v)
-        elif hasattr(v, "pk"):
-            return str(v.pk)
-        return str(v)
+    provider: ImmediateTaskProvider
+    message: ImmediateTaskMessage

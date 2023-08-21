@@ -14,9 +14,9 @@ async def publish_task(c, p, t=None):
         t = datetime.now(tz=UTC)
 
     message = Message(
-        body=orjson.dumps(
-            InQueueMessageTopicSubscriber.message_model.model_validate(p).model_dump()
-        ),
+        body=InQueueMessageTopicSubscriber.message_model.model_validate(p)
+        .model_dump_json()
+        .encode(),
         delivery_mode=DeliveryMode.PERSISTENT,
     )
     await InQueueMessageTopicSubscriber.delay_notify(
@@ -24,4 +24,4 @@ async def publish_task(c, p, t=None):
         message=message,
         delay=(t - datetime.now(tz=UTC)).total_seconds(),
     )
-    logger.info(f"Enqueue task {message.message_id}")
+    # logger.info(f"Enqueue task {message.message_id}")

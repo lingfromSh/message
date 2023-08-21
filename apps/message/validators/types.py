@@ -2,13 +2,14 @@ from typing import Annotated
 
 from bson.objectid import ObjectId
 from pydantic import AfterValidator
+from pydantic import PlainSerializer
 from pydantic import PlainValidator
 
 from apps.endpoint.validators.endpoint import ETag
 from apps.endpoint.validators.endpoint import ExID
 
 ObjectID = Annotated[
-    str, AfterValidator(lambda x: ObjectId(x)), PlainValidator(lambda x: str(x))
+    str, PlainValidator(lambda x: ObjectId(x)), PlainSerializer(lambda x: str(x))
 ]
 
 

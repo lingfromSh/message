@@ -12,9 +12,11 @@ from apscheduler.triggers.interval import IntervalTrigger
 from pydantic import BaseModel
 from sanic.log import logger
 
+from common.constants import EXECUTOR_NAME
 from common.constants import SERVER_NAME
 from common.constants import TOPIC_EXCHANGE_NAME
 from common.exceptions import ImproperlyConfiguredException
+from utils import get_app
 
 __topic_subscirbers__ = OrderedDict()
 
@@ -64,12 +66,15 @@ class TopicSubscriber:
 
     @classmethod
     async def notify(cls, connection, message: aio_pika.abc.AbstractMessage):
-        await publish(connection, message=message, topic=cls.topic)
+        await publish(None, message=message, topic=cls.topic)
 
     @classmethod
     async def delay_notify(
         cls, connection, message: aio_pika.abc.AbstractMessage, delay: timedelta
     ):
+        if not isinstance(delay, timedelta):
+            delay = timedelta(seconds=int(delay))
+
         if delay.total_seconds() <= 0:
             await cls.notify(connection, message)
         else:
@@ -96,23 +101,20 @@ def register_consumer(app, queue_name, subscriber):
         if __consumer_counter__.get(subscriber.topic, 0) != 0:
             return
 
-        async def func():
-            from apps.message.models import Provider
-            from apps.scheduler.models import Plan
+        if app.name != EXECUTOR_NAME:
+            return
 
+        async def func():
             async with app.ctx.queue.acquire() as connection:
                 channel: aio_pika.Channel = await connection.channel()
                 queue: aio_pika.Queue = await channel.declare_queue(
-                    queue_name, durable=True
+                    queue_name, durable=subscriber.durable
                 )
                 try:
-                    context = {}
-                    # context["providers"] = {p.pk: p async for p in Provider.find()}
-                    # context["plans"] = {
-                    #     p.pk: p async for p in Plan.find({"is_enabled": True})
-                    # }
-                    async for m in queue.iterator():
-                        await subscriber.handle(app, m, context=context)
+                    logger.info(f"handler messages from {subscriber.topic}")
+                    async with queue.iterator() as q:
+                        async for m in q:
+                            await subscriber.handle(app, m, context={})
                     logger.info("finished handling messages")
                 except aio_pika.exceptions.ChannelInvalidStateError:
                     logger.info(
@@ -167,8 +169,7 @@ async def setup(app: sanic.Sanic, connection: aio_pika.abc.AbstractConnection) -
                     exchange, routing_key=f"{subscriber.topic}.deadletter"
                 )
             logger.info(f"setup topic subscriber: {subscriber.topic}")
-            if app.name == SERVER_NAME:
-                register_consumer(app, queue_name, subscriber)
+            register_consumer(app, queue_name, subscriber)
 
 
 def enrich(message: aio_pika.abc.AbstractMessage):
@@ -191,8 +192,13 @@ async def publish(
     Publish command
     """
 
-    async with connection.channel() as channel:
-        exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
-
-        await exchange.publish(enrich(message), routing_key=topic)
-        logger.info(f"publish message {message.message_id} to {topic}")
+    if connection is None:
+        app = get_app()
+        async with app.ctx.channel.acquire() as channel:
+            exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
+            await exchange.publish(enrich(message), routing_key=topic)
+    else:
+        async with connection.channel(publisher_confirms=False) as channel:
+            exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
+            await exchange.publish(enrich(message), routing_key=topic)
+            # logger.info(f"publish message {message.message_id} to {topic}")

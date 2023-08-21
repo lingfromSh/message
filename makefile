@@ -4,8 +4,11 @@ debug:
 i:
 	pip3 install poetry && poetry install
 
-dev:
-	@poetry run sanic server:app --host 0.0.0.0 --workers 4
+server:
+	@poetry run sanic server:app --host 0.0.0.0 --workers 1
 
-planner:
-	@sanic planner:app --host 0.0.0.0 --port 8081 --workers 4
+plan:
+	@poetry run sanic planner:app --host 0.0.0.0 --port 8001 --workers 8
+
+executor:
+	@poetry run sanic executor:app --host 0.0.0.0 --port 8002 --workers 8

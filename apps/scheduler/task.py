@@ -13,7 +13,7 @@ from utils import get_app
 
 
 async def enqueue_future_task():
-    logger.info("start enqueueing tasks")
+    # logger.info("start enqueueing tasks")
     now = datetime.now(tz=UTC)
     app = get_app()
     rlock_name = "plan.{pk}.lock"
@@ -24,14 +24,16 @@ async def enqueue_future_task():
     # is_enabled = True
     # 要么是timer类型, timer_at在30分钟以内, repeat_time大于0
     # 或者是repeat类型
+    start = now
+    end = now + timedelta(seconds=interval * 2)
     condition = {
         "$and": [
-            {"triggers.start_time": {"$lte": now}},
+            {"triggers.start_time": {"$lte": start}},
             {"is_enabled": True},
             {
                 "$or": [
                     {"triggers.end_time": None},
-                    {"triggers.end_time": {"$gte": now + timedelta(seconds=interval)}},
+                    {"triggers.end_time": {"$gte": end}},
                 ]
             },
             {
@@ -39,8 +41,8 @@ async def enqueue_future_task():
                     {
                         "triggers.type": PlanTriggerType.TIMER.value,
                         "triggers.timer_at": {
-                            "$gte": now,
-                            "$lte": now + timedelta(seconds=interval),
+                            "$gte": start,
+                            "$lte": end,
                         },
                         "triggers.repeat_time": {"$gt": 0},
                     },
@@ -58,18 +60,17 @@ async def enqueue_future_task():
     }
 
     async with app.ctx.queue.acquire() as connection:
-        plans = []
         total_plan_count = await Plan.count_documents(condition)
         limit = math.ceil(total_plan_count / app.ctx.workers)
         skip = app.ctx.worker_id * limit
         async for plan in Plan.find(condition).limit(limit).skip(skip):
-            logger.info(f"get candidate plan: {plan.pk}")
+            # logger.info(f"get candidate plan: {plan.pk}")
             lock = app.ctx.cache.lock(
                 name=rlock_name.format(pk=str(plan.pk)),
-                timeout=interval,
+                timeout=interval * 2,
             )
             if not await lock.acquire(blocking=False):
-                logger.info(f"plan: {plan.pk} is processed, then skip it")
+                # logger.info(f"plan: {plan.pk} is processed, then skip it")
                 continue
 
             # TODO: 增加一个任务，长时间没有变化的任务置为失败
@@ -91,12 +92,12 @@ async def enqueue_future_task():
                         try:
                             cron = crontabula.parse(trigger.repeat_at)
                             start_time = max(
-                                now, trigger.last_trigger or trigger.start_time
+                                start, trigger.last_trigger or trigger.start_time
                             )
                             for time_to_execute in cron.date_times(start=start_time):
                                 time_to_execute = time_to_execute.astimezone(UTC)
                                 # only compute execution in this duration
-                                if time_to_execute > now + timedelta(seconds=interval):
+                                if time_to_execute > end:
                                     break
 
                                 # skip executing after end time
@@ -109,15 +110,11 @@ async def enqueue_future_task():
                                 trigger.last_trigger = time_to_execute
                                 await publish_task(connection, plan, time_to_execute)
                                 time_to_execute_count += 1
-                            plans.append(plan)
                         except Exception:
-                            logger.exception("Invalid cron expr")
+                            # logger.exception("Invalid cron expr")
                             continue
 
-                logger.info(f"add future execution: {time_to_execute_count}")
+                # logger.info(f"add future execution: {time_to_execute_count}")
             except Exception:
-                logger.exception("got invalid plan")
+                # logger.exception("got invalid plan")
                 await lock.release()
-
-            for plan in plans:
-                await plan.commit()

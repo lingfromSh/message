@@ -70,11 +70,10 @@ class WebsocketConnectionPoolDependency(
         async with self.lock:
             self.close_callbacks.setdefault(connection_id, []).append(callback)
 
-    async def is_alive(self, connection_id: str):
+    def is_alive(self, connection_id: str):
         if hasattr(connection_id, "_id"):
             connection_id = connection_id._id
-        async with self.lock:
-            return connection_id in self.connections
+        return connection_id in self.connections
 
     async def remove_connection(self, connection: Any):
         if hasattr(connection, "_id"):
@@ -87,7 +86,7 @@ class WebsocketConnectionPoolDependency(
                 return
 
         async with self.lock:
-            logger.info(f"remove connection: {connection_id}")
+            # logger.info(f"remove connection: {connection_id}")
 
             with suppress(Exception):
                 await self.app.cancel_task(f"websocket_{connection_id}_send_task")
@@ -120,14 +119,14 @@ class WebsocketConnectionPoolDependency(
 
     async def prepare(self):
         self.is_prepared = True
-        logger.info("dependency:WebsocketPool is prepared")
+        # logger.info("dependency:WebsocketPool is prepared")
         return self.is_prepared
 
     async def check(self):
         return True
 
     async def send_task(self, queue, connection):
-        while await self.is_alive(connection):
+        while self.is_alive(connection):
             try:
                 data = queue.get_nowait()
             except QueueEmpty:
@@ -143,23 +142,23 @@ class WebsocketConnectionPoolDependency(
                 break
 
     async def recv_task(self, queue, connection):
-        while await self.is_alive(connection):
+        while self.is_alive(connection):
             try:
                 data = await connection.recv()
                 await queue.put(data)
-                logger.info(f"recv message: {data} from connection: {connection._id}")
+                # logger.info(f"recv message: {data} from connection: {connection._id}")
             except Exception as err:
                 break
 
     async def notify_task(self, connection_id):
-        while await self.is_alive(connection_id):
+        while self.is_alive(connection_id):
             try:
-                logger.info(f"notify connection: {connection_id}'s listeners")
+                # logger.info(f"notify connection: {connection_id}'s listeners")
                 data = await self.recv_queues[connection_id].get()
                 for listener in self.listeners.get(connection_id, {}).values():
                     await listener(connection_id, data)
             except Exception as err:
-                print(err)
+                pass
 
     async def is_alive_task(self, connection_id: str):
         if hasattr(connection_id, "_id"):
@@ -199,7 +198,7 @@ class WebsocketConnectionPoolDependency(
         return False
 
     async def send(self, connection_id: str, data: Any) -> bool:
-        if not await self.is_alive(connection_id):
+        if not self.is_alive(connection_id):
             return False
         if connection_id not in self.send_queues:
             return False

@@ -1,8 +1,9 @@
 from typing import List
 
 import strawberry
-from strawberry.extensions import ParserCache, ValidationCache
 from sanic.log import logger
+from strawberry.extensions import ParserCache
+from strawberry.extensions import ValidationCache
 
 from common.constants import HEALTHY
 from common.constants import UNHEALTHY
@@ -63,4 +64,4 @@ def setup(app) -> None:
         "/graphql",
     )
 
-    logger.info("setup graphql schema")
+    # logger.info("setup graphql schema")

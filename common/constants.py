@@ -1,5 +1,6 @@
 SERVER_NAME = "Message"
 PLANNER_NAME = "Message-Planner"
+EXECUTOR_NAME = "Message-Executor"
 HEALTHY = True
 UNHEALTHY = False
 

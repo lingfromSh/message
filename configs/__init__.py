@@ -2,12 +2,12 @@ from typing import Any
 
 import environ
 from sanic.config import Config as SanicConfig
+from sanic.log import logger
 
 from .api import APIConfig
 from .cache import CacheConfig
 from .database import DatabaseConfig
 from .queue import QueueConfig
-from sanic.log import logger
 
 
 @environ.config(prefix="MESSAGE")
@@ -17,8 +17,8 @@ class Config:
     DATABASE = environ.group(DatabaseConfig)
     QUEUE = environ.group(QueueConfig)
 
-    WEBSOCKET_PING_INTERVAL = environ.var(default=5, converter=int)
-    WEBSOCKET_PING_TIMEOUT = environ.var(default=5, converter=int)
+    WEBSOCKET_PING_INTERVAL = environ.var(default=600, converter=int)
+    WEBSOCKET_PING_TIMEOUT = environ.var(default=600, converter=int)
 
 
 config = environ.to_config(Config)

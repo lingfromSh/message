@@ -1,8 +1,8 @@
 from umongo import Document
 from umongo import fields
 
-from utils import get_app
 from common.constants import SERVER_NAME
+from utils import get_app
 
 app = get_app()
 
@@ -35,10 +35,3 @@ class Message(Document):
         collection_name = "messages"
         indexes = ("provider", "status", "-created_at", "-updated_at")
 
-
-if app.name == SERVER_NAME:
-    try:
-        app.add_task(Provider.ensure_indexes())
-        app.add_task(Message.ensure_indexes())
-    except Exception:
-        pass

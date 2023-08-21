@@ -56,5 +56,6 @@ class SendMessageInput:
         data = dataclasses.asdict(self)
 
         provider = data["provider"]
+        # TODO: cache provider
         provider = await Provider.find_one({"_id": provider})
         return SendMessageInputModel(provider=provider, realm=data["realm"])

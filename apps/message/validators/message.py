@@ -30,7 +30,7 @@ class SendMessageInputModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    async def send(self, save=True, sync=True) -> Tuple[SendResult, Message]:
+    async def send(self, save=True) -> Tuple[SendResult, Message]:
         provider_cls = get_provider(self.provider.type, self.provider.code)
         if provider_cls.need_configure:
             provider = provider_cls(**self.provider.config)
@@ -38,41 +38,37 @@ class SendMessageInputModel(BaseModel):
             provider = provider_cls()
 
         validated = provider.validate_message(config=self.realm)
+
         data = self.model_dump()
         data["realm"] = validated.model_dump()
         data["status"] = MessageStatus.SENDING.value
         data["provider"] = self.provider
         message = Message(**data)
 
-        if save and sync is False:
+        from apps.message.subscriber import ImmediateMessageTopicSubscriber
+
+        if save:
             await message.commit()
 
-        if sync:
-            result = await provider.send(
-                provider_id=self.provider.pk, message=validated
+        result = SendResult(
+            provider_id=self.provider.pk,
+            message=validated,
+            status=MessageStatus.SENDING,
+        )
+        app = get_app()
+        async with app.ctx.queue.acquire() as connection:
+            queue_message = ImmediateMessageTopicSubscriber.message_model(
+                provider={
+                    "oid": str(self.provider.pk),
+                    "type": self.provider.type,
+                    "code": self.provider.code,
+                },
+                message={"oid": str(message.pk), "realm": message.realm},
             )
-            message.status = result.status.value
-
-            if save:
-                await message.commit()
-        else:
-            from apps.message.subscriber import ImmediateMessageTopicSubscriber
-
-            result = SendResult(
-                provider_id=self.provider.pk,
-                message=validated,
-                status=MessageStatus.SENDING,
+            await ImmediateMessageTopicSubscriber.notify(
+                None,
+                message=QueueMessage(body=queue_message.model_dump_json().encode()),
             )
-            app = get_app()
-            async with app.ctx.queue.acquire() as connection:
-                queue_message = ImmediateMessageTopicSubscriber.message_model(
-                    provider=self.provider, message=message
-                )
-                await ImmediateMessageTopicSubscriber.notify(
-                    connection,
-                    message=QueueMessage(body=orjson.dumps(queue_message.model_dump())),
-                )
-
         return result, message
 
 

@@ -37,7 +37,6 @@ class WebsocketMessageProviderModel(MessageProviderModel):
             return list(set(map(str, connections)))
 
     async def send(self, provider_id, message: Message) -> SendResult:
-        logger.info(f"sending websocket message:{message}")
         app = get_app()
         websocket_pool = app.ctx.ws_pool
 
@@ -50,19 +49,19 @@ class WebsocketMessageProviderModel(MessageProviderModel):
                     [
                         w
                         for c in await connection.decode()
-                        for w in c.websockets
-                        if hasattr(c, "websockets")
+                        for w in c.get("websockets", [])
                     ]
                 )
             elif isinstance(connection, ExID):
                 endpoint = await connection.decode()
                 if endpoint:
-                    connections.extend(endpoint.websockets)
+                    connections.extend(endpoint.get("websockets", []))
             else:
                 connections.append(connection)
 
         connections = list(set(filter(lambda x: x, connections)))
 
+        # logger.info(f"sending websocket message to {connections}")
         for connection in connections:
             sent = await websocket_pool.send(
                 connection, data={"action": message.action, "payload": message.payload}

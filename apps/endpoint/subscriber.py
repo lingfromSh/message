@@ -52,6 +52,10 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
                         external_id=data["external_id"],
                         websockets=[data["connection_id"]],
                     )
+                    await app.ctx.cache.set(
+                        f"exid:{data['external_id']}:endpoint",
+                        orjson.dumps(endpoint.dump()),
+                    )
                     await Endpoint.collection.insert_one(endpoint.to_mongo(), session=s)
 
             async with app.ctx.cache.lock(
@@ -80,13 +84,17 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
                 websockets = set(endpoint.websockets)
                 websockets.remove(connection_id)
                 websockets = list(websockets)
+                await app.ctx.cache.set(
+                    f"exid:{endpoint.external_id}:endpoint",
+                    orjson.dumps(endpoint.dump()),
+                )
                 updated = await Endpoint.collection.update_one(
                     {"external_id": endpoint.external_id},
                     {"$set": {"websockets": websockets}},
                     session=s,
                 )
                 modified_count += updated.modified_count
-                logger.info(f"unregister websocket connection: {connection_id}")
+                # logger.info(f"unregister websocket connection: {connection_id}")
             return modified_count
 
         async with message.process(ignore_processed=True, requeue=True):

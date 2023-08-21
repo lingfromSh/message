@@ -70,11 +70,3 @@ class PlanExecution(Document):
     class Meta:
         collection_name = "plan_executions"
         indexes = ("plan", "status", "-time_to_execute", "-created_at", "-updated_at")
-
-
-if app.name == SERVER_NAME:
-    try:
-        app.add_task(Plan.ensure_indexes())
-        app.add_task(PlanExecution.ensure_indexes())
-    except Exception:
-        pass

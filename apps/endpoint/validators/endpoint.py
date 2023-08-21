@@ -1,6 +1,7 @@
 from typing import List
 from typing import Optional
 
+import orjson
 from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -10,8 +11,11 @@ from pydantic import computed_field
 from pydantic import model_validator
 
 from apps.endpoint.models import Endpoint
+from utils import get_app
 
 from .types import ObjectID
+
+app = get_app()
 
 
 class CreateEndpointInputModel(BaseModel):
@@ -113,6 +117,11 @@ class ExID:
 
     async def decode(self):
         try:
-            return await Endpoint.find_one({"external_id": self.v})
-        except Exception:
+            raw = await app.ctx.cache.get(f"exid:{self.v}:endpoint")
+            if raw:
+                data = orjson.loads(raw)
+                return data
+            endpoint = await Endpoint.find_one({"external_id": self.v})
+            return endpoint.dump()
+        except Exception as err:
             return None

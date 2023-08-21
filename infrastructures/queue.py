@@ -1,6 +1,7 @@
 import asyncio
 
 from aio_pika import connect_robust
+from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.pool import Pool
 from sanic.log import logger
 
@@ -21,6 +22,14 @@ def connection_pool_factory(app):
     return connection_factory
 
 
+def connection_channel_factory(connection_pool):
+    async def channel_factory():
+        async with connection_pool.acquire() as connection:
+            return await connection.channel(publisher_confirms=False)
+
+    return channel_factory
+
+
 class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="queue"):
     MAX_CHANNEL_NUM = 8092
 
@@ -33,6 +42,9 @@ class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="que
 
         try:
             self._prepared = Pool(connection_pool_factory(self.app), max_size=10)
+            self.app.ctx.channel = Pool(
+                connection_channel_factory(self._prepared), max_size=8092
+            )
             self.is_prepared = True
         except asyncio.TimeoutError:
             self._prepared = None
@@ -45,3 +57,10 @@ class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="que
             await self.prepare()
 
         return self.is_prepared
+
+
+async def retry_message(message: AbstractIncomingMessage):
+    retry_count = message.headers.get("retry", 0)
+    retry_count += 1
+    message.headers.update({"retry": retry_count})
+    await message.nack()

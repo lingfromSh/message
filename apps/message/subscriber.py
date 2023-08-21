@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC
 from datetime import datetime
 
 import orjson
@@ -7,13 +8,20 @@ from bson.objectid import ObjectId
 from sanic import Sanic
 from sanic.log import logger
 
+from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
+from apps.message.events import MessageCreateEvent
 from apps.message.models import Message
 from apps.message.models import Provider
+from apps.message.utils import get_provider
 from apps.message.validators.message import SendMessageInputModel
 from apps.message.validators.task import FuturePlanTask
 from apps.message.validators.task import ImmediateTask
+from apps.scheduler.events import PlanExecutionCreateEvent
+from apps.scheduler.events import PlanTriggerRepeatTimeDecreaseEvent
 from common.command import TopicSubscriber
+from common.constants import EXECUTOR_NAME
+from common.eventbus import EventBusTopicSubscriber
 
 
 class InQueueMessageTopicSubscriber(TopicSubscriber):
@@ -47,87 +55,95 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
         context: dict = {},
     ):
         async with message.process(ignore_processed=True):
-            logger.info(f"got message: {message.message_id}")
-
+            # logger.info(f"got message: {message.message_id}")
+            events = []
             finished_sub_plans = 0
-            db_messages = []
             try:
-                body = orjson.loads(message.body)
-                body["pk"] = body.get("id")
-                task = FuturePlanTask.model_validate(body)
+                task = FuturePlanTask.model_validate_json(message.body)
                 errors = []
                 for sub_plan in task.sub_plans:
-                    try:
-                        if ObjectId(sub_plan.provider) in context["providers"]:
-                            db_provider = context["providers"][
-                                ObjectId(sub_plan.provider)
-                            ]
-                        else:
-                            db_provider = await Provider.find_one(
-                                {"_id": ObjectId(sub_plan.provider)}
-                            )
-                    except Exception:
-                        logger.info(
-                            f"provider: {sub_plan.provider} does not exist - skip this sub plan"
-                        )
-                        continue
+                    # try:
+                    #     if ObjectId(sub_plan.provider) in context.get("providers", {}):
+                    #         db_provider = context["providers"][
+                    #             ObjectId(sub_plan.provider)
+                    #         ]
+                    #     else:
+                    #         db_provider = await Provider.find_one(
+                    #             {"_id": ObjectId(sub_plan.provider)}
+                    #         )
+                    # except Exception:
+                    #     logger.info(
+                    #         f"provider: {sub_plan.provider} does not exist - skip this sub plan"
+                    #     )
+                    #     continue
 
                     try:
-                        model = SendMessageInputModel(
-                            provider=db_provider,
-                            realm=sub_plan.message,
+                        provider = get_provider("websocket", "websocket")(
+                            **{}
+                            # **(db_provider.config or {})
                         )
-                        _, db_message = await model.send(save=False)
-                        db_messages.append(db_message.to_mongo())
+                        validated = provider.validate_message(config=sub_plan.message)
+
+                        result = await provider.send(sub_plan.provider, validated)
+
+                        events.append(
+                            MessageCreateEvent(
+                                provider_id=sub_plan.provider,
+                                realm=sub_plan.message,
+                                status=result.status.value,
+                                created_at=datetime.now(tz=UTC),
+                                updated_at=datetime.now(tz=UTC),
+                            )
+                        )
+
                         finished_sub_plans += 1
                     except Exception:
                         logger.exception("sub plan is not valid - skip this sub plan")
                         continue
 
-                await Message.collection.insert_many(db_messages)
             except Exception as err:
                 # validation error or send error
-                pass
+                logger.warning(f"failed to send or save message: {err}")
 
             try:
                 # TODO: 通过队列解耦合操作
                 from apps.scheduler.common.constants import PlanExecutionStatus
-                from apps.scheduler.models import Plan
-                from apps.scheduler.models import PlanExecution
 
-                execution = PlanExecution(
-                    plan=ObjectId(task.id),
-                    status=PlanExecutionStatus.IN_QUEUE.value,
-                    time_to_execute=datetime.utcnow(),
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow(),
+                execution = dict(
+                    plan_id=task.id,
+                    status=PlanExecutionStatus.IN_QUEUE,
+                    time_to_execute=datetime.now(tz=UTC),
+                    created_at=datetime.now(tz=UTC),
+                    updated_at=datetime.now(tz=UTC),
                 )
 
                 if finished_sub_plans == 0:
-                    execution.status = PlanExecutionStatus.FAILED.value
-                    execution.reason = errors
-                    await message.reject()
+                    execution["status"] = PlanExecutionStatus.FAILED
+                    execution["reason"] = errors
                 else:
-                    execution.status = PlanExecutionStatus.SUCCEEDED.value
-                    await message.ack()
+                    execution["status"] = PlanExecutionStatus.SUCCEEDED
 
-                await execution.commit()
+                events.append(PlanExecutionCreateEvent(**execution))
 
-                if ObjectId(task.id) in context["plans"]:
-                    plan = context["plans"][ObjectId(task.id)]
-                else:
-                    plan = await Plan.find_one({"_id": ObjectId(task.id)})
-                for trigger in plan.triggers:
-                    if trigger.repeat_time > 0:
-                        trigger.repeat_time -= 1
-                await plan.commit()
+                # if ObjectId(task.id) in context.get("plans", {}):
+                #     plan = context["plans"][ObjectId(task.id)]
+                # else:
+                #     plan = await Plan.find_one({"_id": ObjectId(task.id)})
+                # for trigger in plan.triggers:
+                #     if trigger.repeat_time > 0:
+                #         trigger.repeat_time -= 1
+                # await plan.commit()
 
-            except Exception:
+                events.append(PlanTriggerRepeatTimeDecreaseEvent(plan_id=task.id))
+
+                for event in events:
+                    app.add_task(
+                        EventBusTopicSubscriber.notify(None, message=event.to_message())
+                    )
+
+            except Exception as err:
                 logger.info("invalid future message to send")
-                try:
-                    await message.reject()
-                except Exception:
-                    ...
+                await message.reject()
 
 
 class ImmediateMessageTopicSubscriber(TopicSubscriber):
@@ -149,47 +165,28 @@ class ImmediateMessageTopicSubscriber(TopicSubscriber):
             logger.info(f"got message: {message.message_id}")
 
             try:
-                data = orjson.loads(message.body)
-                task = ImmediateTask.model_validate(data)
-            except orjson.JSONDecodeError:
-                return
-
-            try:
-                if ObjectId(task.provider) in context["providers"]:
-                    db_provider = context["providers"][ObjectId(task.provider)]
-                else:
-                    db_provider = await Provider.find_one(
-                        {"_id": ObjectId(task.provider)}
-                    )
+                task = ImmediateTask.model_validate_json(message.body)
             except Exception:
-                logger.info(
-                    f"provider: {task.provider} does not exist - skip this task"
-                )
                 return
 
             try:
-                if ObjectId(task.message) in context.get("messages", {}):
-                    db_message = context["messages"][ObjectId[task.message]]
-                else:
-                    db_message = await Message.find_one({"_id": ObjectId(task.message)})
-
-                if db_message.status == MessageStatus.SUCCEEDED.value:
-                    logger.info(f"message: {task.message} was sent - skip this task")
-                    return
-
-            except Exception:
-                logger.info(f"message: {task.message} does not exist - skip this task")
-                return
-
-            try:
-                model = SendMessageInputModel(
-                    provider=db_provider,
-                    realm=db_message.realm,
+                provider = get_provider(task.provider.type, task.provider.code)(
+                    **task.provider.config
                 )
-                result, message = await model.send(save=False)
+                validated = provider.validate_message(config=task.message.realm)
+
+                result = await provider.send(task.provider.oid, validated)
+                
                 if result.status == MessageStatus.SUCCEEDED:
-                    db_message.status = message.status
-                    db_message.updated_at = message.updated_at
-                    await db_message.commit()
+                    await Message.collection.update_one(
+                        {"_id": ObjectId(task.message.oid)},
+                        {
+                            "$set": {
+                                "status": result.status.value,
+                                "updated_at": datetime.now(tz=UTC),
+                            }
+                        },
+                    )
+                logger.info("finished to send message")
             except Exception:
                 logger.exception("message is not valid - skip this task")
