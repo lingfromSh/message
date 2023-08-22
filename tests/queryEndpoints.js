@@ -3,9 +3,7 @@ import http from 'k6/http';
 
 export default function () {
 
-    let data = { "query": "query endpoints {\n    endpoints {\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        currentPage\n        currentPageSize\n        totalPageCount\n        totalItemCount\n      }\n      edges {\n          id\n          oid\n          externalId\n          tags\n          websockets\n          emails\n      }\n    }\n}", "variables": {} }
-
-    const res = http.post('http://localhost:8080/graphql', JSON.stringify(data), {
+    const res = http.get('http://localhost:8000/endpoints?external_ids=&tags=&websockets=&emails=', {
         headers: { 'Content-Type': 'application/json' },
     });
     check(res, {

@@ -5,11 +5,11 @@ from typing import Optional
 from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
-from pydantic import Field
 from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_validator
 
+from apps.message.validators.types import ObjectID
 from apps.message.common.constants import MessageProviderType
 
 
@@ -64,7 +64,7 @@ class FuturePlanTask(BaseModel):
 class ImmediateTaskProvider(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: str
+    oid: ObjectID
     type: MessageProviderType
     code: str
     config: Optional[dict] = {}
@@ -82,7 +82,7 @@ class ImmediateTaskProvider(BaseModel):
 class ImmediateTaskMessage(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: str
+    oid: ObjectID
     realm: dict
 
 

@@ -1,8 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
-from functools import wraps
-from threading import Event
 
 from sanic import Sanic
 

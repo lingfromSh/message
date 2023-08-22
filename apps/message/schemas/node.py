@@ -7,24 +7,23 @@ from strawberry.relay import Node
 from strawberry.relay import NodeID
 from strawberry.types.info import Info  # noqa: TCH001
 from umongo.fields import Reference
+from typing import Annotated
+from bson.objectid import ObjectId
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
 from apps.message.models import Provider
-from apps.message.validators.message import MessageOutputModel
-from apps.message.validators.provider import ProviderOutputModel
 from infrastructures.graphql import ObjectID
+from infrastructures.graphql import document_to_node
 
 
-@strawberry.experimental.pydantic.type(
-    model=ProviderOutputModel, use_pydantic_alias=False
-)
+@strawberry.type
 class ProviderNode(Node):
     global_id: NodeID[ObjectID]
     oid: ObjectID
 
-    code: strawberry.auto
-    name: strawberry.auto
+    code: str
+    name: str
     type: strawberry.enum(MessageProviderType)
 
     config: Optional[strawberry.scalars.JSON]
@@ -32,31 +31,31 @@ class ProviderNode(Node):
     created_at: datetime
     updated_at: datetime
 
-    @staticmethod
-    def from_pydantic(output: ProviderOutputModel, extra):
-        return ProviderNode(global_id=output.oid, **output.model_dump())
-
     @classmethod
     async def resolve_nodes(
         cls, *, info: Info, node_ids: Iterable[str], required: bool = False
     ):
-        nodes = []
+        print(node_ids)
+        ret = []
         async for provider in Provider.find({"_id": {"$in": node_ids}}):
-            node = cls.from_pydantic(ProviderOutputModel.model_validate(provider))
-            nodes.append(node)
-
-        return nodes
+            ret.append(document_to_node(provider))
+        return ret
 
 
 async def ref_provider(root: "MessageNode"):
     if isinstance(root.provider, Reference):
         provider = await root.provider.fetch()
-        return ProviderOutputModel.model_validate(provider)
+    elif isinstance(root.provider, str):
+        provider = await Provider.find_one({"_id": ObjectId(root.provider)})
+    else:
+        provider = await Provider.find_one({"_id": root.provider})
+    data = provider.dump()
+    data["global_id"] = data.pop("id")
+    data["oid"] = data["global_id"]
+    return ProviderNode(**data)
 
 
-@strawberry.experimental.pydantic.type(
-    model=MessageOutputModel, use_pydantic_alias=False
-)
+@strawberry.type
 class MessageNode(Node):
     global_id: NodeID[ObjectID]
     oid: ObjectID
@@ -67,7 +66,3 @@ class MessageNode(Node):
 
     created_at: datetime
     updated_at: datetime
-
-    @staticmethod
-    def from_pydantic(output: MessageOutputModel, extra):
-        return MessageNode(global_id=output.id, **output.model_dump())

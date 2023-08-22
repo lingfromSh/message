@@ -3,8 +3,9 @@ import http from 'k6/http';
 
 export default function () {
 
-    let data = { "query": "mutation sendMessage {\n  sendMessage(\n    input: {provider: \"64e362199f351203b2e42a0c\", realm: {connections: [\"#exid:studio:1\"], action: \"on.backup.recovery\", payload: \"01H6QT1TY610S2WPA4TVEY7Y98\"}}\n  ) \n}", "variables": {} }
-
+    let data = {
+        "query": "mutation {\n  sendMessage(input: {\n    provider: \"64e41e4e0fa38f93e2f17a56\",\n    realm: {\n      connections: [\"#exid:studio:1\"],\n      action: \"message\",\n      payload: \"nothing\"\n    }\n  }){\n    oid\n    status\n    provider{\n      oid\n    }\n  }\n}"
+    }
     const res = http.post('http://localhost:8000/graphql', JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' },
     });

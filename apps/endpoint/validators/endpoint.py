@@ -25,31 +25,22 @@ class CreateEndpointInputModel(BaseModel):
     websockets: Optional[List[str]]
     emails: Optional[List[EmailStr]]
 
-    async def save(self):
-        endpoint = Endpoint(**self.model_dump(exclude_none=True))
-        await endpoint.commit()
-        return endpoint
+
+class QueryEndpointInputModel(BaseModel):
+    external_ids: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    websockets: Optional[List[str]] = None
+    emails: Optional[List[str]] = None
+    page_size: Optional[int] = app.config.API.DEFAULT_PAGE_SIZE
+    page: Optional[int] = app.config.API.DEFAULT_PAGE
 
 
 class UpdateEndpointInputModel(BaseModel):
     external_id: str
-    tags: Optional[List[str]]
+    tags: Optional[List[str]] = None
 
-    websockets: Optional[List[str]]
-    emails: Optional[List[EmailStr]]
-
-    async def save(self):
-        endpoint = await Endpoint.find_one({"external_id": self.external_id})
-        if not endpoint:
-            raise ValueError("endpoint not found")
-        if self.tags is not None:
-            endpoint.tags = self.tags
-        if self.websockets is not None:
-            endpoint.websockets = self.websockets
-        if self.emails is not None:
-            endpoint.emails = self.emails
-        await endpoint.commit()
-        return endpoint
+    websockets: Optional[List[str]] = None
+    emails: Optional[List[EmailStr]] = None
 
 
 class DestroyEndpointInputModel(BaseModel):
@@ -121,7 +112,6 @@ class ExID:
             if raw:
                 data = orjson.loads(raw)
                 return data
-            endpoint = await Endpoint.find_one({"external_id": self.v})
-            return endpoint.dump()
+            return None
         except Exception as err:
             return None

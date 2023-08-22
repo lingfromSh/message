@@ -110,7 +110,11 @@ class MessageConnection(Connection[NodeType]):
         while isinstance(field, StrawberryContainer):
             field = field.of_type
 
-        return field._pydantic_type.model_validate(v)
+        data = v.dump()
+        data["global_id"] = data.pop("id")
+        data["oid"] = data["global_id"]
+        print(field._type_definition, data)
+        return field(**data)
 
     @classmethod
     def resolve_connection(
@@ -434,3 +438,7 @@ def connection(
     if resolver is not None:
         f = f(resolver)
     return f
+
+
+def document_to_node(doc):
+    ...

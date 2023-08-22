@@ -2567,6 +2567,29 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
+name = "sanic-pydantic"
+version = "1.3.1"
+description = "Sanic Pydatic"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "sanic-pydantic-1.3.1.tar.gz", hash = "sha256:ee6f8699faa805b735e4469dd7634111b4d34383ed7ce13cd984d4c9c12e0f9f"},
+]
+
+[package.dependencies]
+pydantic = "*"
+sanic = "*"
+
+[package.extras]
+dev = ["black", "coverage", "flake8", "ipdb", "pipenv", "pre-commit", "pytest"]
+docs = ["mkdocs", "mkdocs-material"]
+
+[package.source]
+type = "legacy"
+url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
+reference = "sjtu"
+
+[[package]]
 name = "sanic-routing"
 version = "23.6.0"
 description = "Core routing component for Sanic"
@@ -3263,4 +3286,4 @@ reference = "sjtu"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "35dc87218fdfdc1f34d1afd56ab1dba26ae82fab24f973eea990bee362bf19fa"
+content-hash = "34de05f2c02a266c530ad01c4ffeb0afc313159fd5bbe31d68626a2b80b0a769"

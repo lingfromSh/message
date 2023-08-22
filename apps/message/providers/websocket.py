@@ -59,22 +59,22 @@ class WebsocketMessageProviderModel(MessageProviderModel):
             else:
                 connections.append(connection)
 
-        connections = list(set(filter(lambda x: x, connections)))
+        connections = list(
+            set(filter(lambda x: app.ctx.ws_pool.is_alive(connection), connections))
+        )
 
         # logger.info(f"sending websocket message to {connections}")
         for connection in connections:
-            sent = await websocket_pool.send(
-                connection, data={"action": message.action, "payload": message.payload}
-            )
-            if not sent:
-                continue
-            sent_list.add(connection)
+            if await websocket_pool.send(
+                connection, data=message.model_dump_json(exclude=["connections"])
+            ):
+                sent_list.add(connection)
 
         if sent_list:
             return SendResult(
                 provider_id=provider_id, message=message, status=MessageStatus.SUCCEEDED
             )
-
-        return SendResult(
-            provider_id=provider_id, message=message, status=MessageStatus.FAILED
-        )
+        else:
+            return SendResult(
+                provider_id=provider_id, message=message, status=MessageStatus.FAILED
+            )

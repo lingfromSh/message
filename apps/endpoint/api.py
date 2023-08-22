@@ -1,96 +1,113 @@
-import dataclasses
-from typing import AsyncIterable
-from typing import List
-from typing import Optional
-
-import strawberry
-from strawberry.types import Info
-
+import math
+from common.webargs import webargs
+from sanic import json
+from sanic import Blueprint
 from apps.endpoint.models import Endpoint
-from apps.endpoint.schemas.input import CreateEndpointInput
-from apps.endpoint.schemas.input import DestroyEndpointInput
-from apps.endpoint.schemas.input import UpdateEndpointInput
-from apps.endpoint.schemas.node import EndpointNode
-from infrastructures.graphql import MessageConnection
-from infrastructures.graphql import connection
+from apps.endpoint.validators.endpoint import (
+    EndpointOutputModel,
+    CreateEndpointInputModel,
+    UpdateEndpointInputModel,
+    QueryEndpointInputModel,
+)
+from common.response import MessageJSONResponse
+
+bp = Blueprint("endpoint")
 
 
-@strawberry.type
-class Query:
-    @connection(MessageConnection[EndpointNode])
-    async def endpoints(
-        self, external_ids: Optional[List[str]] = None, tags: Optional[List[str]] = None
-    ) -> AsyncIterable[EndpointNode]:
-        conditions = {}
-        if external_ids is not None:
-            conditions["external_id"] = {"$in": external_ids}
-        if tags is not None:
-            conditions["tags"] = {"$in": tags}
-        return Endpoint.find(conditions)
+@bp.post("/endpoints")
+@webargs(body=CreateEndpointInputModel)
+async def create_endpoint(request, **kwargs):
+    endpoint = Endpoint(**kwargs["payload"])
+    await endpoint.commit()
+    return json(EndpointOutputModel.model_validate(endpoint).model_dump())
 
 
-@strawberry.type
-class Mutation:
-    @strawberry.mutation
-    async def create_endpoint(self, input: CreateEndpointInput) -> EndpointNode:
-        endpoint = Endpoint(**dataclasses.asdict(input))
-        await endpoint.commit()
-        return EndpointNode(
-            global_id=endpoint.pk,
-            oid=endpoint.pk,
-            external_id=input.external_id,
-            tags=input.tags,
-            websockets=input.websockets,
-            emails=input.emails,
-        )
+@bp.get("/endpoint/<exid:str>")
+async def get_endpoint(request, exid, **kwargs):
+    endpoint = await Endpoint.find_one({"external_id": exid})
+    if endpoint is None:
+        raise ValueError("endpoint not found")
+    return MessageJSONResponse(
+        data=EndpointOutputModel.model_validate(endpoint).model_dump()
+    )
 
-    @strawberry.mutation
-    async def update_endpoint(
-        self, info: Info, input: UpdateEndpointInput
-    ) -> EndpointNode:
-        request = info.context.get("request")
-        app = request.app
 
-        async def atomic_update(session):
-            endpoint = await Endpoint.find_one({"external_id": input.external_id})
-            if not endpoint:
-                return None
-            if input.tags:
-                endpoint.tags = input.tags
-            if input.websockets:
-                endpoint.websockets = input.websockets
-            if input.emails:
-                endpoint.emails = input.emails
+@bp.patch("/endpoint/<exid:str>")
+@webargs(body=UpdateEndpointInputModel)
+async def update_endpoint(request, exid, **kwargs):
+    app = request.app
 
-            if change := endpoint.to_mongo(update=True):
-                await Endpoint.collection.update_one(
-                    {"external_id": input.external_id},
-                    change,
-                    session=session,
-                )
-            return endpoint
-
-        async with await app.ctx.db_client.start_session() as session:
-            updated = await session.with_transaction(atomic_update)
-            if updated:
-                return EndpointNode(
-                    global_id=updated.pk,
-                    oid=updated.pk,
-                    external_id=updated.external_id,
-                    tags=updated.tags,
-                    websockets=updated.websockets,
-                    emails=updated.emails,
-                )
+    async def modify(session):
+        endpoint = await Endpoint.find_one({"external_id": exid})
+        if not endpoint:
             raise ValueError("endpoint not found")
+        payload = kwargs["payload"]
+        if external_id := payload.get("external_id"):
+            endpoint.external_id = external_id
+        if tags := payload.get("tags"):
+            endpoint.tags = tags
+        if websockets := payload.get("websockets"):
+            endpoint.websockets = websockets
+        if emails := payload.get("emails"):
+            endpoint.emails = emails
+        await Endpoint.collection.update_one(
+            {"_id": endpoint.pk}, endpoint.to_mongo(update=True), session=session
+        )
+        return endpoint
 
-    @strawberry.mutation
-    async def destroy_endpoints(self, input: DestroyEndpointInput) -> int:
-        conditions = []
-        if input.oids:
-            conditions.append({"_id": {"$in": input.oids}})
-        if input.external_ids:
-            conditions.append({"external_id": {"$in": input.external_ids}})
-        if conditions:
-            destoried = await Endpoint.collection.delete_many({"$or": conditions})
-            return destoried.deleted_count
-        return 0
+    async with await app.ctx.db_client.start_session() as session:
+        endpoint = await session.with_transaction(modify)
+
+    return MessageJSONResponse(
+        data=EndpointOutputModel.model_validate(endpoint).model_dump()
+    )
+
+
+@bp.delete("/endpoint/<exid:str>")
+async def destroy_endpoint(request, exid, **kwargs):
+    endpoint = await Endpoint.find_one({"external_id": exid})
+    if endpoint is None:
+        raise ValueError("endpoint not found")
+    result = await Endpoint.collection.delete_many({"external_id": exid})
+    return MessageJSONResponse(data=result.deleted_count)
+
+
+@bp.get("/endpoints")
+@webargs(query=QueryEndpointInputModel)
+async def filter_endpoints(request, **kwargs):
+    filtered = []
+    condition = {}
+
+    query = kwargs["query"]
+    if external_ids := query.get("external_ids"):
+        condition.update({"external_id": {"$in": external_ids}})
+
+    if tags := query.get("tags"):
+        condition.update({"tags": {"$in": tags}})
+
+    if websockets := query.get("websockets"):
+        condition.update({"websockets": {"$in": websockets}})
+
+    if tags := query.get("tags"):
+        condition.update({"tags": {"$in": tags}})
+
+    page = query.get("page")
+    page_size = query.get("page_size")
+    total_item_count = await Endpoint.count_documents(condition)
+    total_page_count = math.ceil(total_item_count / page_size)
+
+    limit = page_size
+    offset = (page - 1) * page_size
+    async for endpoint in Endpoint.find(condition).skip(offset).limit(limit):
+        filtered.append(EndpointOutputModel.model_validate(endpoint).model_dump())
+
+    return MessageJSONResponse(
+        data={
+            "page": page,
+            "page_size": page_size,
+            "total_item_count": total_item_count,
+            "total_page_count": total_page_count,
+            "results": filtered,
+        },
+        message="filter endpoint successfully",
+    )

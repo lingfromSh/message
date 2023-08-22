@@ -15,3 +15,10 @@ app = Sanic(
 )
 
 setup_app(app)
+
+
+@app.before_server_start
+def setup_server(app):
+    from apps.endpoint.api import bp as endpoint_blueprint
+
+    app.blueprint(endpoint_blueprint)

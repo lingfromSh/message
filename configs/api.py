@@ -7,3 +7,6 @@ class APIConfig:
     GRAPHQL_RELAY_DEFAULT_PAGE_SIZE = environ.var(default=20, converter=int)
     GRAPHQL_RELAY_MIN_PAGE_SIZE = environ.var(default=1, converter=int)
     GRAPHQL_RELAY_MAX_PAGE_SIZE = environ.var(default=500, converter=int)
+
+    DEFAULT_PAGE_SIZE = environ.var(default=50, converter=int)
+    DEFAULT_PAGE = environ.var(default=1, converter=int)

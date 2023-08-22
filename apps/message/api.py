@@ -1,10 +1,13 @@
 from typing import AsyncIterable
+from datetime import datetime, UTC
 from typing import List
 from typing import Optional
+from bson.objectid import ObjectId
 
 import strawberry
 from strawberry.types import Info
 
+from aio_pika.message import Message as QueueMessage
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
 from apps.message.models import Message
@@ -15,8 +18,10 @@ from apps.message.schemas.input import SendMessageInput
 from apps.message.schemas.input import UpdateProviderInput
 from apps.message.schemas.node import MessageNode
 from apps.message.schemas.node import ProviderNode
-from apps.message.validators.message import MessageOutputModel
 from apps.message.validators.provider import ProviderOutputModel
+from apps.message.validators.task import ImmediateTask
+from apps.message.subscriber import ImmediateMessageTopicSubscriber
+from apps.message.utils import get_provider
 from infrastructures.graphql import MessageConnection
 from infrastructures.graphql import connection
 
@@ -72,8 +77,67 @@ class Mutation:
         return await model.delete()
 
     @strawberry.mutation
-    async def send_message(self, input: SendMessageInput) -> bool:
-        model = await input.to_pydantic()
-        result, message = await model.send()
-        return True
-        # return MessageOutputModel.model_validate(message)
+    async def send_message(self, info: Info, input: SendMessageInput) -> MessageNode:
+        app = info.context.get("request").app
+        dbprovider = await Provider.find_one({"_id": input.provider})
+        if not dbprovider:
+            raise ValueError("provider not found")
+
+        config = dbprovider.config or {}
+        provider = get_provider(dbprovider.type, dbprovider.code)(**config)
+        validated = provider.validate_message(input.realm)
+        message_data = dict(
+            provider=dbprovider,
+            realm=input.realm,
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
+        )
+        if dbprovider.type != MessageProviderType.WEBSOCKET.value:
+            sent = await provider.send(input.provider, message=validated)
+            message_data["status"] = (
+                MessageStatus.SUCCEEDED.value if sent else MessageStatus.FAILED.value
+            )
+        else:
+            message_data["status"] = MessageStatus.SENDING.value
+
+        message = Message(**message_data)
+        message.id = ObjectId()
+
+        if dbprovider.type == MessageProviderType.WEBSOCKET.value:
+            task = ImmediateTask(
+                provider={
+                    "oid": dbprovider.pk,
+                    "type": dbprovider.type,
+                    "code": dbprovider.code,
+                    "config": config,
+                },
+                message={
+                    "oid": message.pk,
+                    "realm": message.realm,
+                },
+            )
+
+            app.add_task(
+                ImmediateMessageTopicSubscriber.notify(
+                    None, message=QueueMessage(body=task.model_dump_json().encode())
+                )
+            )
+            app.add_task(message.commit())
+        return MessageNode(
+            global_id=message.pk,
+            oid=message.pk,
+            realm=message.realm,
+            status=message.status,
+            provider=ProviderNode(
+                global_id=dbprovider.pk,
+                oid=dbprovider.pk,
+                name=dbprovider.name,
+                type=dbprovider.type,
+                code=dbprovider.code,
+                config=dbprovider.config,
+                created_at=dbprovider.created_at,
+                updated_at=dbprovider.updated_at,
+            ),
+            created_at=message.created_at,
+            updated_at=message.updated_at,
+        )

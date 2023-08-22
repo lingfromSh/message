@@ -5,11 +5,28 @@ import http from 'k6/http';
 export default function () {
 
     let data = {
-        "query": "mutation createEndpoint {\n  createEndpoint(\n    input: {externalId: \"studio:2\", tags: [\"Flexiv\", \"Admin\"], websockets: [], emails: [\"lingfromsh@163.com\"]}\n  ) {\n    oid\n    externalId\n    tags\n    websockets\n    emails\n  }\n}",
-        "operationName": "createEndpoint"
+        "oid": "64e452b7a5d3a9d4ed79bb8d",
+        "external_id": "28",
+        "tags": [
+            "nulla magna mollit",
+            "consequat nulla in sit"
+        ],
+        "websockets": [
+            "ut ea",
+            "anim eu dolor",
+            "adipisicing labore",
+            "minim laboris cupidatat Ut"
+        ],
+        "emails": [
+            "i.iwxvy@qq.com",
+            "s.zbhippb@qq.com",
+            "j.vtujsdlot@qq.com",
+            "i.qdknavv@qq.com"
+        ],
+        "global_id": "64e452b7a5d3a9d4ed79bb8d"
     }
 
-    const res = http.post('http://localhost:8000/graphql', JSON.stringify(data), {
+    const res = http.post('http://localhost:8000/endpoints', JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' },
     });
     check(res, {
