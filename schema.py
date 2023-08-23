@@ -13,13 +13,11 @@ from infrastructures.graphql import MessageGraphQLView
 
 
 def setup(app) -> None:
-    from apps.message.api import Mutation as MessageMutation
-    from apps.message.api import Query as MessageQuery
     from apps.scheduler.api import Mutation as PlanMutation
     from apps.scheduler.api import Query as PlanQuery
 
     @strawberry.type
-    class Query(MessageQuery, PlanQuery):
+    class Query(PlanQuery):
         node: strawberry.relay.Node = strawberry.relay.node()
 
         @strawberry.field
@@ -39,7 +37,7 @@ def setup(app) -> None:
             return sorted(ret, key=lambda x: x.name)
 
     @strawberry.type
-    class Mutation(MessageMutation, PlanMutation):
+    class Mutation(PlanMutation):
         ...
 
     app.add_route(

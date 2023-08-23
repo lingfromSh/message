@@ -1,15 +1,15 @@
 import math
-from common.webargs import webargs
-from sanic import json
+
 from sanic import Blueprint
+from sanic import json
+
 from apps.endpoint.models import Endpoint
-from apps.endpoint.validators.endpoint import (
-    EndpointOutputModel,
-    CreateEndpointInputModel,
-    UpdateEndpointInputModel,
-    QueryEndpointInputModel,
-)
+from apps.endpoint.validators.endpoint import CreateEndpointInputModel
+from apps.endpoint.validators.endpoint import EndpointOutputModel
+from apps.endpoint.validators.endpoint import QueryEndpointInputModel
+from apps.endpoint.validators.endpoint import UpdateEndpointInputModel
 from common.response import MessageJSONResponse
+from common.webargs import webargs
 
 bp = Blueprint("endpoint")
 

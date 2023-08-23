@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import orjson
 from functools import wraps
 from inspect import isawaitable
 
 from pydantic import ValidationError
+from common.response import MessageJSONResponse
 from sanic.response import json
 
 __author__ = "Ahmed Nafies <ahmed.nafies@gmail.com>"
@@ -63,7 +65,11 @@ def webargs(query=None, body=None, path=None, headers=None):
             try:
                 result = validate(request, query, body, path, headers)
             except ValidationError as e:
-                return json(e.errors(), status=422)
+                return MessageJSONResponse(
+                    data=None,
+                    status=422,
+                    message="\n".join([err["msg"] for err in e.errors()]),
+                )
             kwargs.update(result)
 
             response = f(request, *args, **kwargs)

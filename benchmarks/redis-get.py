@@ -1,7 +1,7 @@
 import asyncio
 import cProfile
-from redis.asyncio import StrictRedis
 
+from redis.asyncio import StrictRedis
 
 connection = StrictRedis(password="communication-2023")
 

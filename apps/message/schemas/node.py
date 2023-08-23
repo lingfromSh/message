@@ -1,14 +1,14 @@
 from datetime import datetime
+from typing import Annotated
 from typing import Iterable
 from typing import Optional
 
 import strawberry
+from bson.objectid import ObjectId
 from strawberry.relay import Node
 from strawberry.relay import NodeID
 from strawberry.types.info import Info  # noqa: TCH001
 from umongo.fields import Reference
-from typing import Annotated
-from bson.objectid import ObjectId
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus

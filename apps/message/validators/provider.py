@@ -8,11 +8,10 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import WrapSerializer
-from pydantic import computed_field
+from pydantic import field_serializer
 from pydantic import constr
 from pydantic import model_validator
 from typing_extensions import Annotated
-from umongo.fields import Reference
 
 from apps.message.common.constants import MessageProviderType
 from apps.message.models import Provider
@@ -70,21 +69,12 @@ class CreateProviderInputModel(EnsureProviderMixin, CheckConfigMixin, BaseModel)
 
 
 class UpdateProviderInputModel(EnsureProviderMixin, CheckConfigMixin, BaseModel):
-    oid: ObjectID
     type: Optional[WrappedMessageProviderType] = None
     code: Optional[constr(to_lower=True, max_length=32)] = None
     name: Optional[constr(max_length=1024)] = None
     config: Optional[dict] = None
 
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-    async def save(self):
-        provider = await Provider.find_one({"_id": ObjectId(self.oid)})
-        if not provider:
-            raise ValueError("provider not found")
-        provider.update(self.model_dump(exclude_none=True, exclude={"oid"}))
-        await provider.commit()
-        return provider
 
 
 class DestroyProviderInputModel(BaseModel):
@@ -100,7 +90,7 @@ class DestroyProviderInputModel(BaseModel):
 class ProviderOutputModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: ObjectID = Field(alias="pk")
+    id: ObjectID = Field(alias="pk")
     type: MessageProviderType
     code: constr(to_lower=True, max_length=32)
     name: constr(max_length=1024)
@@ -109,8 +99,17 @@ class ProviderOutputModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    @computed_field
-    @property
-    def global_id(self) -> str:
-        return self.oid
+    @field_serializer("type")
+    def serialize_type(self, type):
+        return type.value
 
+
+class QueryProviderInputModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    ids: Optional[List[str]] = None
+    types: Optional[List[MessageProviderType]] = None
+    codes: Optional[List[str]] = None
+    names: Optional[List[str]] = None
+    page: Optional[int] = app.config.API.DEFAULT_PAGE
+    page_size: Optional[int] = app.config.API.DEFAULT_PAGE_SIZE

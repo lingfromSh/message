@@ -1,143 +1,171 @@
-from typing import AsyncIterable
-from datetime import datetime, UTC
-from typing import List
-from typing import Optional
+import math
 from bson.objectid import ObjectId
+from sanic import Blueprint
 
-import strawberry
-from strawberry.types import Info
-
-from aio_pika.message import Message as QueueMessage
-from apps.message.common.constants import MessageProviderType
-from apps.message.common.constants import MessageStatus
+from common.webargs import webargs
 from apps.message.models import Message
 from apps.message.models import Provider
-from apps.message.schemas.input import CreateProviderInput
-from apps.message.schemas.input import DestroyProviderInput
-from apps.message.schemas.input import SendMessageInput
-from apps.message.schemas.input import UpdateProviderInput
-from apps.message.schemas.node import MessageNode
-from apps.message.schemas.node import ProviderNode
+from apps.message.validators.message import MessageOutputModel
+from apps.message.validators.message import QueryMessageInputModel
+from apps.message.validators.message import SendMessageInputModel
 from apps.message.validators.provider import ProviderOutputModel
-from apps.message.validators.task import ImmediateTask
-from apps.message.subscriber import ImmediateMessageTopicSubscriber
-from apps.message.utils import get_provider
-from infrastructures.graphql import MessageConnection
-from infrastructures.graphql import connection
+from apps.message.validators.provider import CreateProviderInputModel
+from apps.message.validators.provider import UpdateProviderInputModel
+from apps.message.validators.provider import QueryProviderInputModel
+from common.webargs import webargs
+from common.response import MessageJSONResponse
+
+provider_bp = Blueprint("provider")
+message_bp = Blueprint("message")
 
 
-@strawberry.type
-class Query:
-    @connection(MessageConnection[ProviderNode])
-    async def providers(
-        self,
-        info: Info,
-        type_in: Optional[List[strawberry.enum(MessageProviderType)]] = None,
-        code_in: Optional[List[str]] = None,
-        name: Optional[str] = None,
-    ) -> AsyncIterable[Provider]:
-        conditions = {}
-        if type_in is not None:
-            conditions["type"] = {"$in": [t.value for t in type_in]}
-        if code_in is not None:
-            conditions["code"] = {"$in": code_in}
-        if name is not None:
-            conditions["name"] = name
-        return Provider.find(conditions)
+@provider_bp.get("/providers")
+@webargs(query=QueryProviderInputModel)
+async def filter_providers(request, **kwargs):
+    filtered = []
+    condition = {}
 
-    @connection(MessageConnection[MessageNode])
-    async def messages(
-        self,
-        info: Info,
-        status_in: Optional[List[strawberry.enum(MessageStatus)]] = None,
-    ) -> AsyncIterable[Message]:
-        conditions = {}
-        if status_in is not None:
-            conditions["status"] = {"$in": status_in}
-        return Message.find(conditions)
+    query = kwargs["query"]
+    if codes := query.get("codes"):
+        condition.update({"code": {"$in": codes}})
+
+    if types := query.get("types"):
+        condition.update({"types": {"$in": types}})
+
+    if names := query.get("names"):
+        condition.update({"names": {"$in": names}})
+
+    if ids := query.get("ids"):
+        condition.update({"ids": {"$in": [ObjectId(id) for id in ids]}})
+
+    page = query.get("page")
+    page_size = query.get("page_size")
+    total_item_count = await Provider.count_documents(condition)
+    total_page_count = math.ceil(total_item_count / page_size)
+
+    limit = page_size
+    offset = (page - 1) * page_size
+    async for provider in Provider.find(condition).skip(offset).limit(limit):
+        filtered.append(ProviderOutputModel.model_validate(provider).model_dump())
+
+    return MessageJSONResponse(
+        data={
+            "page": page,
+            "page_size": page_size,
+            "total_item_count": total_item_count,
+            "total_page_count": total_page_count,
+            "results": filtered,
+        },
+        message="filter providers successfully",
+    )
 
 
-@strawberry.type
-class Mutation:
-    @strawberry.mutation
-    async def create_provider(self, input: CreateProviderInput) -> ProviderNode:
-        model = input.to_pydantic()
-        provider = await model.save()
-        return ProviderOutputModel.model_validate(provider)
+@provider_bp.post("/providers")
+@webargs(body=CreateProviderInputModel)
+async def create_provider(request, **kwargs):
+    payload = kwargs["payload"]
+    provider = Provider(**payload)
+    await provider.commit()
+    return MessageJSONResponse(
+        data=ProviderOutputModel.model_validate(provider).model_dump()
+    )
 
-    @strawberry.mutation
-    async def update_provider(self, input: UpdateProviderInput) -> ProviderNode:
-        model = input.to_pydantic()
-        provider = await model.save()
-        return ProviderOutputModel.model_validate(provider)
 
-    @strawberry.mutation
-    async def destroy_providers(self, input: DestroyProviderInput) -> int:
-        model = input.to_pydantic()
-        return await model.delete()
+@provider_bp.get("/provider/<pk:str>")
+async def get_provider(request, pk, **kwargs):
+    provider = await Provider.find_one({"_id": ObjectId(pk)})
+    if not provider:
+        raise ValueError("provider not found")
+    return MessageJSONResponse(
+        data=ProviderOutputModel.model_validate(provider).model_dump()
+    )
 
-    @strawberry.mutation
-    async def send_message(self, info: Info, input: SendMessageInput) -> MessageNode:
-        app = info.context.get("request").app
-        dbprovider = await Provider.find_one({"_id": input.provider})
-        if not dbprovider:
-            raise ValueError("provider not found")
 
-        config = dbprovider.config or {}
-        provider = get_provider(dbprovider.type, dbprovider.code)(**config)
-        validated = provider.validate_message(input.realm)
-        message_data = dict(
-            provider=dbprovider,
-            realm=input.realm,
-            created_at=datetime.now(tz=UTC),
-            updated_at=datetime.now(tz=UTC),
+@provider_bp.patch("/provider/<pk:str>")
+@webargs(body=UpdateProviderInputModel)
+async def update_provider(request, pk, **kwargs):
+    app = request.app
+    payload = kwargs["payload"]
+
+    async def modify(session):
+        provider = await Provider.find_one({"_id": ObjectId(pk)})
+        if type := payload.get("type"):
+            provider.type = type
+        if code := payload.get("code"):
+            provider.code = code
+        if name := payload.get("name"):
+            provider.name = name
+        if config := payload.get("config"):
+            provider.config = config
+
+        provider.updated_at = payload["updated_at"]
+        await Provider.collection.update_one(
+            {"_id": ObjectId(pk)}, provider.to_mongo(update=True), session=session
         )
-        if dbprovider.type != MessageProviderType.WEBSOCKET.value:
-            sent = await provider.send(input.provider, message=validated)
-            message_data["status"] = (
-                MessageStatus.SUCCEEDED.value if sent else MessageStatus.FAILED.value
-            )
-        else:
-            message_data["status"] = MessageStatus.SENDING.value
+        return provider
 
-        message = Message(**message_data)
-        message.id = ObjectId()
+    async with await app.ctx.db_client.start_session() as session:
+        provider = await session.with_transaction(modify)
+    return MessageJSONResponse(
+        data=ProviderOutputModel.model_validate(provider).model_dump()
+    )
 
-        if dbprovider.type == MessageProviderType.WEBSOCKET.value:
-            task = ImmediateTask(
-                provider={
-                    "oid": dbprovider.pk,
-                    "type": dbprovider.type,
-                    "code": dbprovider.code,
-                    "config": config,
-                },
-                message={
-                    "oid": message.pk,
-                    "realm": message.realm,
-                },
-            )
 
-            app.add_task(
-                ImmediateMessageTopicSubscriber.notify(
-                    None, message=QueueMessage(body=task.model_dump_json().encode())
-                )
-            )
-            app.add_task(message.commit())
-        return MessageNode(
-            global_id=message.pk,
-            oid=message.pk,
-            realm=message.realm,
-            status=message.status,
-            provider=ProviderNode(
-                global_id=dbprovider.pk,
-                oid=dbprovider.pk,
-                name=dbprovider.name,
-                type=dbprovider.type,
-                code=dbprovider.code,
-                config=dbprovider.config,
-                created_at=dbprovider.created_at,
-                updated_at=dbprovider.updated_at,
-            ),
-            created_at=message.created_at,
-            updated_at=message.updated_at,
-        )
+@provider_bp.delete("/provider/<pk:str>")
+async def destroy_provider(request, pk, **kwargs):
+    result = await Provider.collection.delete_many({"_id": ObjectId(pk)})
+    return MessageJSONResponse(data=result.deleted_count)
+
+
+@message_bp.get("/messages")
+@webargs(query=QueryMessageInputModel)
+async def filter_messages(request, **kwargs):
+    filtered = []
+    condition = {}
+
+    query = kwargs["query"]
+    if providers := query.get("providers"):
+        condition.update({"provider": {"$in": providers}})
+
+    if status_in := query.get("status_in"):
+        condition.update({"status": {"$in": status_in}})
+
+    if ids := query.get("ids"):
+        condition.update({"ids": {"$in": ids}})
+
+    page = query.get("page")
+    page_size = query.get("page_size")
+    total_item_count = await Message.count_documents(condition)
+    total_page_count = math.ceil(total_item_count / page_size)
+
+    limit = page_size
+    offset = (page - 1) * page_size
+    async for message in Message.find(condition).skip(offset).limit(limit):
+        filtered.append(MessageOutputModel.model_validate(message).model_dump())
+
+    return MessageJSONResponse(
+        data={
+            "page": page,
+            "page_size": page_size,
+            "total_item_count": total_item_count,
+            "total_page_count": total_page_count,
+            "results": filtered,
+        },
+        message="filter messages successfully",
+    )
+
+
+@message_bp.get("/message/<pk:str>")
+async def get_message(request, pk, **kwargs):
+    message = await Message.find_one({"_id": ObjectId(pk)})
+    if not message:
+        raise ValueError("message not found")
+    return MessageJSONResponse(
+        data=MessageOutputModel.model_validate(message).model_dump()
+    )
+
+
+@message_bp.post("/messages")
+@webargs(body=SendMessageInputModel)
+async def send_message(request, **kwargs):
+    payload = kwargs["payload"]

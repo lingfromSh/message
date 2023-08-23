@@ -1,4 +1,9 @@
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Union
+
 from sanic.compat import Header
 from sanic.response import JSONResponse
 

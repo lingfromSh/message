@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -18,6 +19,8 @@ from apps.message.utils import get_provider
 from utils import get_app
 
 from .types import ObjectID
+
+app = get_app()
 
 
 class SendMessageInputModel(BaseModel):
@@ -85,3 +88,11 @@ class MessageOutputModel(BaseModel):
     @property
     def global_id(self) -> str:
         return self.oid
+
+
+class QueryMessageInputModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    ids: Optional[List[ObjectID]] = None
+    providers: Optional[List[ObjectID]] = None
+    status_in: Optional[List[MessageStatus]] = None

@@ -9,8 +9,8 @@ from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_validator
 
-from apps.message.validators.types import ObjectID
 from apps.message.common.constants import MessageProviderType
+from apps.message.validators.types import ObjectID
 
 
 class FutureSubPlanTask(BaseModel):
