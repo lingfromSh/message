@@ -52,6 +52,17 @@ async def stop_task_scheduler(app):
     app.ctx.task_scheduler.shutdown()
 
 
+def setup_api(app):
+    from apps.endpoint.api import bp as endpoint_blueprint
+    from apps.message.api import provider_bp, message_bp
+    from apps.scheduler.api import bp as scheduler_blueprint
+
+    app.blueprint(endpoint_blueprint)
+    app.blueprint(provider_bp)
+    app.blueprint(message_bp)
+    app.blueprint(scheduler_blueprint)
+
+
 def setup_app(application: Sanic):
     application.ctx.dependencies = set()
     application.before_server_start(prepare_cache_dependency)
@@ -60,4 +71,5 @@ def setup_app(application: Sanic):
     application.before_server_start(prepare_websocket_pool_dependency)
     application.before_server_start(acquire_worker_id)
     application.before_server_start(setup_task_scheduler)
+    application.before_server_start(setup_api)
     application.before_server_stop(stop_task_scheduler)

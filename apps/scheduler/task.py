@@ -6,6 +6,7 @@ from datetime import timedelta
 import crontabula
 from sanic.log import logger
 
+from apps.message.models import Provider
 from apps.scheduler.common.constants import PlanTriggerType
 from apps.scheduler.models import Plan
 from apps.scheduler.utils import publish_task
@@ -24,7 +25,7 @@ async def enqueue_future_task():
     # is_enabled = True
     # 要么是timer类型, timer_at在30分钟以内, repeat_time大于0
     # 或者是repeat类型
-    start = now
+    start = now + timedelta(seconds=interval)
     end = now + timedelta(seconds=interval * 2)
     condition = {
         "$and": [
@@ -56,15 +57,17 @@ async def enqueue_future_task():
                     },
                 ]
             },
+            {"sub_plans": {"$exists": True, "$ne": []}},
         ],
     }
+
+    providers = {provider.pk: provider async for provider in Provider.find()}
 
     async with app.ctx.queue.acquire() as connection:
         total_plan_count = await Plan.count_documents(condition)
         limit = math.ceil(total_plan_count / app.ctx.workers)
         skip = app.ctx.worker_id * limit
         async for plan in Plan.find(condition).limit(limit).skip(skip):
-            # logger.info(f"get candidate plan: {plan.pk}")
             lock = app.ctx.cache.lock(
                 name=rlock_name.format(pk=str(plan.pk)),
                 timeout=interval * 2,
@@ -74,6 +77,35 @@ async def enqueue_future_task():
                 continue
 
             # TODO: 增加一个任务，长时间没有变化的任务置为失败
+
+            plan_dict = {
+                "id": plan.pk,
+                "is_enabled": plan.is_enabled,
+                "triggers": [
+                    {
+                        "type": t.type,
+                        "repeat_at": t.repeat_at,
+                        "timer_at": t.timer_at,
+                        "repeat_time": t.repeat_time,
+                        "start_time": t.start_time,
+                        "end_time": t.end_time,
+                    }
+                    for t in plan.triggers
+                ],
+                "sub_plans": [
+                    {
+                        "provider": {
+                            "id": sub_plan.provider.pk,
+                            "type": providers.get(sub_plan.provider.pk).type,
+                            "code": providers.get(sub_plan.provider.pk).code,
+                            "config": providers.get(sub_plan.provider.pk).config or {},
+                        },
+                        "message": sub_plan.message,
+                    }
+                    for sub_plan in plan.sub_plans
+                ],
+            }
+
             try:
                 time_to_execute_count = 0
                 for trigger in plan.triggers:
@@ -86,7 +118,7 @@ async def enqueue_future_task():
                     trigger_type = PlanTriggerType(trigger.type)
                     if trigger_type == PlanTriggerType.TIMER:
                         time_to_execute = trigger.timer_at
-                        await publish_task(connection, plan, time_to_execute)
+                        await publish_task(connection, plan_dict, time_to_execute)
                         time_to_execute_count += 1
                     else:
                         try:
@@ -108,13 +140,15 @@ async def enqueue_future_task():
                                     break
 
                                 trigger.last_trigger = time_to_execute
-                                await publish_task(connection, plan, time_to_execute)
+                                await publish_task(
+                                    connection, plan_dict, time_to_execute
+                                )
                                 time_to_execute_count += 1
                         except Exception:
-                            # logger.exception("Invalid cron expr")
+                            logger.exception("Invalid cron expr")
                             continue
 
-                # logger.info(f"add future execution: {time_to_execute_count}")
+                logger.info(f"add future execution: {time_to_execute_count}")
             except Exception:
-                # logger.exception("got invalid plan")
+                logger.exception("got invalid plan")
                 await lock.release()

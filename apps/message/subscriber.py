@@ -8,13 +8,11 @@ from bson.objectid import ObjectId
 from sanic import Sanic
 from sanic.log import logger
 
-from apps.message.common.constants import MessageProviderType
 from apps.message.common.constants import MessageStatus
 from apps.message.events import MessageCreateEvent
 from apps.message.models import Message
 from apps.message.models import Provider
 from apps.message.utils import get_provider
-from apps.message.validators.message import SendMessageInputModel
 from apps.message.validators.task import FuturePlanTask
 from apps.message.validators.task import ImmediateTask
 from apps.scheduler.events import PlanExecutionCreateEvent
@@ -63,10 +61,9 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                 errors = []
                 for sub_plan in task.sub_plans:
                     try:
-                        provider = get_provider("websocket", "websocket")(
-                            **{}
-                            # **(db_provider.config or {})
-                        )
+                        provider = get_provider(
+                            sub_plan.provider.type, sub_plan.provider.code
+                        )(**sub_plan.provider.config)
                         validated = provider.validate_message(config=sub_plan.message)
 
                         result = await provider.send(sub_plan.provider, validated)
@@ -83,12 +80,11 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
 
                         finished_sub_plans += 1
                     except Exception:
-                        logger.exception("sub plan is not valid - skip this sub plan")
-                        continue
+                        logger.warning("sub plan is not valid - skip this sub plan")
 
-            except Exception as err:
+            except Exception:
                 # validation error or send error
-                logger.warning(f"failed to send or save message: {err}")
+                logger.warning(f"failed to send or save message")
 
             try:
                 # TODO: 通过队列解耦合操作
@@ -116,9 +112,8 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                         EventBusTopicSubscriber.notify(None, message=event.to_message())
                     )
 
-            except Exception as err:
+            except Exception:
                 logger.info("invalid future message to send")
-                await message.reject()
 
 
 class ImmediateMessageTopicSubscriber(TopicSubscriber):

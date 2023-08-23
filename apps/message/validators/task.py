@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import List
 from typing import Optional
 
-from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import field_serializer
@@ -13,18 +12,23 @@ from apps.message.common.constants import MessageProviderType
 from apps.message.validators.types import ObjectID
 
 
+class ProviderInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: ObjectID
+    type: MessageProviderType
+    code: str
+    config: dict = {}
+
+    @field_serializer("type")
+    def serialize_type(self, type):
+        return type.value
+
+
 class FutureSubPlanTask(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    provider: str
+    provider: ProviderInfo
     message: dict
-
-    @field_validator("provider", mode="before")
-    def validate_provider(cls, v):
-        if isinstance(v, ObjectId):
-            return str(v)
-        elif hasattr(v, "pk"):
-            return str(v.pk)
-        return str(v)
 
 
 class FuturePlanTriggersTask(BaseModel):
@@ -49,16 +53,11 @@ class FuturePlanTriggersTask(BaseModel):
 
 
 class FuturePlanTask(BaseModel):
-    id: str
+    id: ObjectID
     model_config = ConfigDict(from_attributes=True)
     is_enabled: bool
     triggers: List[FuturePlanTriggersTask]
     sub_plans: List[FutureSubPlanTask]
-
-    @field_validator("id", mode="before")
-    @classmethod
-    def validate_id(cls, v) -> str:
-        return str(v)
 
 
 class ImmediateTaskProvider(BaseModel):

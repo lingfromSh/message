@@ -15,15 +15,3 @@ app = Sanic(
 )
 
 setup_app(app)
-
-
-@app.before_server_start
-def setup_server(app):
-    from apps.endpoint.api import bp as endpoint_blueprint
-    from apps.message.api import provider_bp, message_bp
-    from apps.scheduler.api import bp as scheduler_blueprint
-
-    app.blueprint(endpoint_blueprint)
-    app.blueprint(provider_bp)
-    app.blueprint(message_bp)
-    app.blueprint(scheduler_blueprint)

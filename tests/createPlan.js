@@ -15,6 +15,14 @@ export default function () {
             }
         ],
         "sub_plans": [
+            {
+                "provider": "64e55ef3b6354fa1d7f2eb24",
+                "connections": ["exid:studio:1"],
+                "message": {
+                    "action": "say.hello",
+                    "payload": "hello"
+                }
+            }
         ],
         "is_enabled": true
     }

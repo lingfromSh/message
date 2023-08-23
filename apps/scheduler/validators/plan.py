@@ -3,16 +3,14 @@ from typing import List
 from typing import Optional
 
 import crontabula
-from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import computed_field
+from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_validator
 from umongo.fields import Reference
 
-from apps.message.models import Provider
 from apps.scheduler.common.constants import PlanTriggerType
 from utils import get_app
 
@@ -44,6 +42,10 @@ class PlanSubPlanOutputModel(BaseModel):
 
     provider: Reference
     message: dict
+
+    @field_serializer("provider")
+    def serialize_provider(self, provider):
+        return str(provider.pk)
 
 
 class PlanOutputModel(BaseModel):
@@ -90,7 +92,7 @@ class CreatePlanTriggerInputModel(PlanTriggerOutputModel):
 
 class CreatePlanSubPlanInputModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    provider: Provider
+    provider: ObjectID
     message: dict
 
 
