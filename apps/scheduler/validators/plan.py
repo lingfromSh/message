@@ -14,22 +14,24 @@ from umongo.fields import Reference
 
 from apps.message.models import Provider
 from apps.scheduler.common.constants import PlanTriggerType
-from apps.scheduler.models import Plan
+from utils import get_app
 
 from .types import ObjectID
+
+app = get_app()
 
 
 class PlanTriggerOutputModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
     type: PlanTriggerType
 
-    timer_at: Optional[datetime]
-    repeat_at: Optional[str]
+    timer_at: Optional[datetime] = None
+    repeat_at: Optional[str] = None
 
     repeat_time: int
 
     start_time: datetime
-    end_time: Optional[datetime]
+    end_time: Optional[datetime] = None
 
     @field_validator("type", mode="after")
     @classmethod
@@ -47,7 +49,7 @@ class PlanSubPlanOutputModel(BaseModel):
 class PlanOutputModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
-    oid: ObjectID = Field(alias="pk")
+    id: ObjectID = Field(alias="pk")
     name: str
     triggers: List[PlanTriggerOutputModel]
     sub_plans: List[PlanSubPlanOutputModel]
@@ -56,10 +58,13 @@ class PlanOutputModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    @computed_field
-    @property
-    def global_id(self) -> str:
-        return self.oid
+
+class QueryPlanInputModel(BaseModel):
+    ids: Optional[List[ObjectID]] = None
+    names: Optional[List[str]] = None
+    is_enabled: Optional[bool] = None
+    page: Optional[int] = app.config.API.DEFAULT_PAGE
+    page_size: Optional[int] = app.config.API.DEFAULT_PAGE_SIZE
 
 
 class CreatePlanTriggerInputModel(PlanTriggerOutputModel):
@@ -98,21 +103,11 @@ class CreatePlanInputModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    async def save(self):
-        plan = Plan(**self.model_dump())
-        await plan.commit()
-        return plan
 
+class UpdatePlanInputModel(BaseModel):
+    name: Optional[str]
+    triggers: Optional[List[CreatePlanTriggerInputModel]]
+    sub_plans: Optional[List[CreatePlanSubPlanInputModel]]
 
-class DisableEnablePlanInputModel(BaseModel):
-    oids: List[ObjectID]
-
-
-class DestroyPlanInputModel(BaseModel):
-    oids: List[ObjectID]
-
-    async def delete(self):
-        result = await Plan.collection.delete_many(
-            {"_id": {"$in": list(map(ObjectId, self.oids))}}
-        )
-        return result.deleted_count
+    is_enabled: Optional[bool]
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

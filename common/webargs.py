@@ -68,7 +68,7 @@ def webargs(query=None, body=None, path=None, headers=None):
                 return MessageJSONResponse(
                     data=None,
                     status=422,
-                    message="\n".join([err["msg"] for err in e.errors()]),
+                    message=orjson.loads(e.json()),
                 )
             kwargs.update(result)
 

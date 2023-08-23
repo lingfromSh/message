@@ -7,7 +7,6 @@ from infrastructures.cache import CacheDependency
 from infrastructures.mongodb import MongoDBDependency
 from infrastructures.queue import QueueDependency
 from infrastructures.websocket import WebsocketConnectionPoolDependency
-from schema import setup as setup_schema
 
 
 async def prepare_cache_dependency(app):
@@ -42,10 +41,6 @@ async def acquire_worker_id(app):
     # logger.info(f"Worker: {app.ctx.worker_id}")
 
 
-async def setup_graphql_schema(app):
-    setup_schema(app)
-
-
 async def setup_task_scheduler(app):
     scheduler = AsyncIOScheduler()
     scheduler.start()
@@ -64,6 +59,5 @@ def setup_app(application: Sanic):
     application.before_server_start(prepare_queue_dependency)
     application.before_server_start(prepare_websocket_pool_dependency)
     application.before_server_start(acquire_worker_id)
-    application.before_server_start(setup_graphql_schema)
     application.before_server_start(setup_task_scheduler)
     application.before_server_stop(stop_task_scheduler)

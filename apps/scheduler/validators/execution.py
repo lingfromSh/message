@@ -5,18 +5,20 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import computed_field
 from umongo.fields import Reference
 
 from apps.scheduler.common.constants import PlanExecutionStatus
-
+from utils import get_app
 from .types import ObjectID
+
+
+app = get_app()
 
 
 class PlanExecutionOutputModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
-    oid: ObjectID = Field(alias="pk")
+    id: ObjectID = Field(alias="pk")
     plan: Reference
     status: PlanExecutionStatus
     reason: Optional[List[str]]
@@ -25,7 +27,9 @@ class PlanExecutionOutputModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    @computed_field
-    @property
-    def global_id(self) -> str:
-        return self.oid
+
+class QueryPlanExecutionInputModel(BaseModel):
+    ids: Optional[List[ObjectID]] = None
+    plans: Optional[List[ObjectID]] = None
+    page: Optional[int] = app.config.API.DEFAULT_PAGE
+    page_size: Optional[int] = app.config.API.DEFAULT_PAGE_SIZE
