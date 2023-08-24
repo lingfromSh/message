@@ -28,6 +28,7 @@ app = get_app()
 def event_handler(event_type: BaseEvent):
     """
     >>> from pydantic import BaseModel
+    >>> from typing import Dict
     >>> class MessageCreateEvent(BaseModel):
     >>>     provider: Dict
     >>>     message: Dict

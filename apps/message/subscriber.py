@@ -2,7 +2,6 @@ import asyncio
 from datetime import UTC
 from datetime import datetime
 
-import orjson
 from aio_pika.abc import AbstractIncomingMessage
 from bson.objectid import ObjectId
 from sanic import Sanic
@@ -11,14 +10,12 @@ from sanic.log import logger
 from apps.message.common.constants import MessageStatus
 from apps.message.events import MessageCreateEvent
 from apps.message.models import Message
-from apps.message.models import Provider
 from apps.message.utils import get_provider
 from apps.message.validators.task import FuturePlanTask
 from apps.message.validators.task import ImmediateTask
 from apps.scheduler.events import PlanExecutionCreateEvent
 from apps.scheduler.events import PlanTriggerRepeatTimeDecreaseEvent
 from common.command import TopicSubscriber
-from common.constants import EXECUTOR_NAME
 from common.eventbus import EventBusTopicSubscriber
 
 
@@ -66,11 +63,11 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                         )(**sub_plan.provider.config)
                         validated = provider.validate_message(config=sub_plan.message)
 
-                        result = await provider.send(sub_plan.provider, validated)
+                        result = await provider.send(sub_plan.provider.id, validated)
 
                         events.append(
                             MessageCreateEvent(
-                                provider_id=sub_plan.provider,
+                                provider_id=sub_plan.provider.id,
                                 realm=sub_plan.message,
                                 status=result.status.value,
                                 created_at=datetime.now(tz=UTC),
@@ -79,8 +76,9 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                         )
 
                         finished_sub_plans += 1
-                    except Exception:
+                    except Exception as err:
                         logger.warning("sub plan is not valid - skip this sub plan")
+                        break
 
             except Exception:
                 # validation error or send error

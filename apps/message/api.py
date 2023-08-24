@@ -3,8 +3,10 @@ from bson.objectid import ObjectId
 from sanic import Blueprint
 
 from common.webargs import webargs
+from aio_pika.message import Message as QueueMessage
 from apps.message.models import Message
 from apps.message.models import Provider
+from apps.message.common.constants import MessageProviderType
 from apps.message.validators.message import MessageOutputModel
 from apps.message.validators.message import QueryMessageInputModel
 from apps.message.validators.message import SendMessageInputModel
@@ -12,6 +14,8 @@ from apps.message.validators.provider import ProviderOutputModel
 from apps.message.validators.provider import CreateProviderInputModel
 from apps.message.validators.provider import UpdateProviderInputModel
 from apps.message.validators.provider import QueryProviderInputModel
+from apps.message.subscriber import ImmediateMessageTopicSubscriber
+from apps.message.utils import get_provider as get_provider_cls
 from common.webargs import webargs
 from common.response import MessageJSONResponse
 
@@ -140,8 +144,21 @@ async def filter_messages(request, **kwargs):
 
     limit = page_size
     offset = (page - 1) * page_size
+    need_query_providers = set()
     async for message in Message.find(condition).skip(offset).limit(limit):
-        filtered.append(MessageOutputModel.model_validate(message).model_dump())
+        dump_messgage = MessageOutputModel.model_validate(message).model_dump()
+        need_query_providers.add(dump_messgage["provider"])
+        filtered.append(dump_messgage)
+
+    providers = {
+        provider.pk: ProviderOutputModel.model_validate(provider).model_dump()
+        async for provider in Provider.find(
+            {"_id": {"$in": list(need_query_providers)}}
+        )
+    }
+
+    for item in filtered:
+        item["provider"] = providers.get(item.pop("provider"))
 
     return MessageJSONResponse(
         data={
@@ -169,3 +186,55 @@ async def get_message(request, pk, **kwargs):
 @webargs(body=SendMessageInputModel)
 async def send_message(request, **kwargs):
     payload = kwargs["payload"]
+    db_provider = await Provider.find_one({"_id": ObjectId(payload["provider"])})
+    if not db_provider:
+        raise ValueError("provider not found")
+
+    # check whether this provider is valid
+    provider_cls = get_provider_cls(db_provider.type, db_provider.code)
+
+    # check if message is valid
+    validated = provider_cls.validate_message(payload["realm"])
+
+    db_message = Message(
+        provider=db_provider.pk,
+        realm=payload["realm"],
+        status=payload["status"],
+        created_at=payload["created_at"],
+        updated_at=payload["updated_at"],
+    )
+
+    if provider_cls.info.type == MessageProviderType.WEBSOCKET:
+        await db_message.commit()
+        immediate_message = (
+            ImmediateMessageTopicSubscriber.message_model.model_validate(
+                {
+                    "provider": {
+                        "id": db_provider.pk,
+                        "type": db_provider.type,
+                        "code": db_provider.code,
+                        "config": db_provider.config,
+                    },
+                    "message": {"id": db_message.pk, "realm": db_message.realm},
+                }
+            )
+        )
+        await ImmediateMessageTopicSubscriber.notify(
+            connection=None,
+            message=QueueMessage(body=immediate_message.model_dump_json().encode()),
+        )
+    else:
+        result = await provider_cls(**(db_provider.config or {})).send(
+            db_provider.id, validated
+        )
+        db_message.status = result.status.value
+        await db_message.commit()
+
+    message_dict = MessageOutputModel.model_validate(db_message).model_dump()
+    message_dict["provider"] = ProviderOutputModel.model_validate(
+        db_provider
+    ).model_dump()
+    return MessageJSONResponse(
+        data=message_dict,
+        message="send message successfully",
+    )

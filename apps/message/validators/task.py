@@ -63,7 +63,7 @@ class FuturePlanTask(BaseModel):
 class ImmediateTaskProvider(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: ObjectID
+    id: ObjectID
     type: MessageProviderType
     code: str
     config: Optional[dict] = {}
@@ -81,7 +81,7 @@ class ImmediateTaskProvider(BaseModel):
 class ImmediateTaskMessage(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: ObjectID
+    id: ObjectID
     realm: dict
 
 

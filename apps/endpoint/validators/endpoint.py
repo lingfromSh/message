@@ -68,17 +68,12 @@ class DestroyEndpointInputModel(BaseModel):
 class EndpointOutputModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    oid: ObjectID = Field(alias="pk")
+    id: ObjectID = Field(alias="pk")
     external_id: str
     tags: Optional[List[str]]
 
     websockets: Optional[List[str]]
     emails: Optional[List[EmailStr]]
-
-    @computed_field
-    @property
-    def global_id(self) -> str:
-        return self.oid
 
 
 class ETag:
