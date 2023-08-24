@@ -14,6 +14,29 @@ services:
   #   depends_on:
   #   - message
 
+  # flink-jobmanager:
+  #   image: flink:latest
+  #   expose:
+  #     - "6123"
+  #   ports:
+  #     - "8081:8081"
+  #   command: jobmanager
+  #   environment:
+  #     - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      
+  # flink-taskmanager:
+  #   image: flink:latest
+  #   expose:
+  #     - "6121"
+  #     - "6122"
+  #   depends_on:
+  #     - flink-jobmanager
+  #   command: taskmanager
+  #   links:
+  #     - "flink-jobmanager:jobmanager"
+  #   environment:
+  #     - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
   mongodb-primary:
     container_name: mongodb-primary
     image: mongo:latest

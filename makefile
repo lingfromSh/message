@@ -11,7 +11,7 @@ plan:
 	@poetry run sanic planner:app --host 0.0.0.0 --port 8001 --workers 8
 
 executor:
-	@poetry run sanic executor:app --host 0.0.0.0 --port 8002 --workers 4
+	@poetry run sanic executor:app --host 0.0.0.0 --port 8002 --fast
 
 mongodb:
 	docker exec -ti mongodb-primary /bin/bash
