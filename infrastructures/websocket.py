@@ -26,8 +26,6 @@ class WebsocketConnectionPoolDependency(
         self.recv_queues = {}
         self.close_callbacks = {}
         self.listeners = {}
-        self.locks = {}
-        self.counter = {}
 
     def _gen_id(self) -> str:
         return str(ULID())
@@ -193,7 +191,7 @@ class WebsocketConnectionPoolDependency(
         """
         if negative=True, only release when client close this connection.
         """
-        while await self.is_alive(connection_id):
+        while self.is_alive(connection_id):
             await asyncio.sleep(0)
         return False
 
