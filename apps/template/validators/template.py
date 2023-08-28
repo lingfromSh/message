@@ -23,7 +23,7 @@ class CreateTemplateInputModel(BaseModel):
     name: str
     provider: ObjectID
 
-    content: str
+    content: dict
     is_enabled: bool = True
 
     created_at: datetime = Field(default_factory=datetime.now(tz=UTC))
@@ -33,7 +33,7 @@ class CreateTemplateInputModel(BaseModel):
 class UpdateTemplateInputModel(BaseModel):
     name: Optional[str]
     provider: Optional[ObjectID]
-    content: str
+    content: dict
     is_enabled: bool
 
     updated_at = Field(default_factory=datetime.now(tz=UTC))
@@ -43,7 +43,7 @@ class TemplateOutputModel(BaseModel):
     id: ObjectID = Field(alias="pk")
     name: str
     provider: ProviderOutputModel
-    content: str
+    content: dict
 
     created_at: datetime
     updated_at: datetime

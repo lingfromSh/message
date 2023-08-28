@@ -13,7 +13,7 @@ class Template(Document):
 
     name = fields.StringField(required=True)
     provider = fields.ReferenceField("Provider", required=True)
-    content = fields.StringField(required=True)
+    content = fields.DictField(required=True)
 
     is_enabled = fields.BooleanField(required=True)
 
