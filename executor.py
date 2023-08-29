@@ -23,18 +23,18 @@ async def handle_websocket(request, ws):
     from apps.endpoint.listeners import unregister_websocket_endpoint
 
     con_id = None
+    websocket_pool = request.app.ctx.infra.websocket()
     try:
-        ctx = request.app.ctx
-        con_id = await ctx.ws_pool.add_connection(ws)
+        con_id = await websocket_pool.add_connection(ws)
         logger.info(f"new connection connected -> {con_id}")
-        await ctx.ws_pool.add_listener(con_id, register_websocket_endpoint)
-        await ctx.ws_pool.add_close_callback(con_id, unregister_websocket_endpoint)
-        await ctx.ws_pool.send(
+        await websocket_pool.add_listener(con_id, register_websocket_endpoint)
+        await websocket_pool.add_close_callback(con_id, unregister_websocket_endpoint)
+        await websocket_pool.send(
             con_id, data={"action": "on.connect", "payload": {"connection_id": con_id}}
         )
-        await ctx.ws_pool.wait_closed(con_id)
+        await websocket_pool.wait_closed(con_id)
     finally:
-        request.app.add_task(request.app.ctx.ws_pool.remove_connection(con_id))
+        request.app.add_task(websocket_pool.remove_connection(con_id))
 
 
 @app.before_server_start

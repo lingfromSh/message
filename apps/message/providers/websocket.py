@@ -38,7 +38,7 @@ class WebsocketMessageProviderModel(MessageProviderModel):
 
     async def send(self, provider_id, message: Message) -> SendResult:
         app = get_app()
-        websocket_pool = app.ctx.ws_pool
+        websocket_pool = app.ctx.infra.websocket()
 
         sent_list = set()
 
@@ -60,7 +60,7 @@ class WebsocketMessageProviderModel(MessageProviderModel):
                 connections.append(connection)
 
         connections = list(
-            set(filter(lambda x: app.ctx.ws_pool.is_alive(connection), connections))
+            set(filter(lambda x: websocket_pool.is_alive(connection), connections))
         )
 
         # logger.info(f"sending websocket message to {connections}")

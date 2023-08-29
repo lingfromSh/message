@@ -5,17 +5,9 @@ from sanic.log import logger
 
 from infrastructures import Infrastructure
 
-from infrastructures.websocket import WebsocketConnectionPoolDependency
-
-
-async def prepare_websocket_pool_dependency(app):
-    websocket_pool_dependency = WebsocketConnectionPoolDependency(app)
-    await websocket_pool_dependency.prepare()
-    app.ctx.dependencies.add(websocket_pool_dependency)
-
 
 async def setup_infrastructure(app):
-    infra = Infrastructure()
+    infra = Infrastructure(app=app)
     infra.config.from_value(app.config)
     infra.init_resources()
     infra.check_dependencies()
@@ -62,7 +54,6 @@ def setup_app(application: Sanic):
     application.ctx.dependencies = set()
 
     application.before_server_start(setup_infrastructure)
-    application.before_server_start(prepare_websocket_pool_dependency)
     application.before_server_start(acquire_worker_id)
     application.before_server_start(setup_task_scheduler)
     application.before_server_stop(stop_task_scheduler)

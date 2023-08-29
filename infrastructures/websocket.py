@@ -9,15 +9,12 @@ import orjson
 from sanic.log import logger
 from ulid import ULID
 
-from common.depend import Dependency
 
 PING = "#ping"
 PONG = "#pong"
 
 
-class WebsocketConnectionPoolDependency(
-    Dependency, dependency_name="WebsocketPool", dependency_alias="ws_pool"
-):
+class WebsocketPoolDependency:
     def __init__(self, app) -> None:
         super().__init__(app)
         self.lock = asyncio.Lock()
@@ -26,6 +23,7 @@ class WebsocketConnectionPoolDependency(
         self.recv_queues = {}
         self.close_callbacks = {}
         self.listeners = {}
+        logger.info("dependency: websocket pool is configured")
 
     def _gen_id(self) -> str:
         return str(ULID())
@@ -114,14 +112,6 @@ class WebsocketConnectionPoolDependency(
     async def do_close_callbacks(self, connection_id):
         for cb in self.close_callbacks.get(connection_id, []):
             self.app.add_task(cb(connection_id))
-
-    async def prepare(self):
-        self.is_prepared = True
-        # logger.info("dependency:WebsocketPool is prepared")
-        return self.is_prepared
-
-    async def check(self):
-        return True
 
     async def send_task(self, queue, connection):
         while self.is_alive(connection):

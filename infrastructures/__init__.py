@@ -1,10 +1,13 @@
+from sanic import Sanic
 from dependency_injector import containers, providers
 from .cache import CacheDependency
 from .mongodb import MongoDBDependency
 from .queue import QueueDependency
+from .websocket import WebsocketPoolDependency
 
 
 class Infrastructure(containers.DeclarativeContainer):
+    app = providers.Dependency(instance_of=Sanic)
     config = providers.Configuration()
 
     queue = providers.Singleton(
@@ -31,3 +34,5 @@ class Infrastructure(containers.DeclarativeContainer):
         host=config.DATABASE.HOST,
         port=config.DATABASE.PORT,
     )
+
+    websocket = providers.Singleton(WebsocketPoolDependency, app=app)
