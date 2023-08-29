@@ -85,7 +85,6 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                 logger.warning(f"failed to send or save message")
 
             try:
-                # TODO: 通过队列解耦合操作
                 from apps.scheduler.common.constants import PlanExecutionStatus
 
                 execution = dict(
@@ -107,7 +106,7 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
 
                 for event in events:
                     app.add_task(
-                        EventBusTopicSubscriber.notify(None, message=event.to_message())
+                        EventBusTopicSubscriber.notify(message=event.to_message())
                     )
 
             except Exception:

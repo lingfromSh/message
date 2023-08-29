@@ -1,15 +1,13 @@
 from datetime import UTC
 from datetime import datetime
 
-import orjson
 from aio_pika import DeliveryMode
 from aio_pika.message import Message
-from sanic.log import logger
 
 from apps.message.subscriber import InQueueMessageTopicSubscriber
 
 
-async def publish_task(c, p, t=None):
+async def publish_task(p, t=None):
     if t is None:
         t = datetime.now(tz=UTC)
 
@@ -20,8 +18,6 @@ async def publish_task(c, p, t=None):
         delivery_mode=DeliveryMode.PERSISTENT,
     )
     await InQueueMessageTopicSubscriber.delay_notify(
-        c,
         message=message,
         delay=(t - datetime.now(tz=UTC)).total_seconds(),
     )
-    # logger.info(f"Enqueue task {message.message_id}")

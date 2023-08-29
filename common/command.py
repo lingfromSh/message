@@ -8,12 +8,10 @@ from functools import partial
 import aio_pika
 import sanic
 import ulid
-from apscheduler.triggers.interval import IntervalTrigger
 from pydantic import BaseModel
 from sanic.log import logger
 
 from common.constants import EXECUTOR_NAME
-from common.constants import SERVER_NAME
 from common.constants import TOPIC_EXCHANGE_NAME
 from common.exceptions import ImproperlyConfiguredException
 from utils import get_app
@@ -65,21 +63,21 @@ class TopicSubscriber:
         add_topic_subscriber(cls)
 
     @classmethod
-    async def notify(cls, connection, message: aio_pika.abc.AbstractMessage):
-        await publish(None, message=message, topic=cls.topic)
+    async def notify(cls, message: aio_pika.abc.AbstractMessage):
+        await publish(message=message, topic=cls.topic)
 
     @classmethod
     async def delay_notify(
-        cls, connection, message: aio_pika.abc.AbstractMessage, delay: timedelta
+        cls, message: aio_pika.abc.AbstractMessage, delay: timedelta
     ):
         if not isinstance(delay, timedelta):
             delay = timedelta(seconds=int(delay))
 
         if delay.total_seconds() <= 0:
-            await cls.notify(connection, message)
+            await cls.notify(message)
         else:
             message.expiration = delay.total_seconds()
-            await publish(connection, message=message, topic=f"{cls.topic}.deadletter")
+            await publish(message=message, topic=f"{cls.topic}.deadletter")
 
     @classmethod
     async def handle(
@@ -96,9 +94,9 @@ __consumer_counter__ = {}
 
 
 def register_consumer(app, queue_name, subscriber):
-    async def wrapped():
+    async def wrapped(max_workers: int = 1):
         global __consumer_counter__
-        if __consumer_counter__.get(subscriber.topic, 0) != 0:
+        if __consumer_counter__.get(subscriber.topic, 0) >= max_workers:
             return
 
         if app.name != EXECUTOR_NAME:
@@ -130,11 +128,14 @@ def register_consumer(app, queue_name, subscriber):
             __consumer_counter__[subscriber.topic] -= 1
             logger.info(f"close consumer {subscriber.topic}")
 
-        __consumer_counter__[subscriber.topic] = 1
+        for _ in range(max_workers):
+            __consumer_counter__[subscriber.topic] = (
+                __consumer_counter__.get(subscriber.topic, 0) + 1
+            )
+            app.add_task(func())
         logger.info(f"start new consumer {subscriber.topic}")
-        await func()
 
-    app.ctx.task_scheduler.add_job(wrapped)
+    app.ctx.task_scheduler.add_job(partial(wrapped, 10))
 
 
 async def setup(app: sanic.Sanic, connection: aio_pika.abc.AbstractConnection) -> bool:
@@ -185,7 +186,6 @@ def enrich(message: aio_pika.abc.AbstractMessage):
 
 
 async def publish(
-    connection: aio_pika.abc.AbstractConnection,
     message: aio_pika.abc.AbstractMessage,
     topic: str = "*",
 ):
@@ -193,13 +193,8 @@ async def publish(
     Publish command
     """
 
-    if connection is None:
-        app = get_app()
-        queue = app.ctx.infra.queue()
-        async with queue.channel_pool.acquire() as channel:
-            exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
-            await exchange.publish(enrich(message), routing_key=topic)
-    else:
-        async with connection.channel(publisher_confirms=False) as channel:
-            exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
-            await exchange.publish(enrich(message), routing_key=topic)
+    app = get_app()
+    queue = app.ctx.infra.queue()
+    async with queue.channel_pool.acquire() as channel:
+        exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
+        await exchange.publish(enrich(message), routing_key=topic)

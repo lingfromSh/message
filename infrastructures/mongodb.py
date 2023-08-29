@@ -10,8 +10,8 @@ class MongoDBDependency:
         port,
         user,
         password,
-        max_pool_size: int = 200,
-        max_connecting: int = 400,
+        max_pool_size: int = 1000,
+        max_connecting: int = 1000,
     ):
         self.uri = "mongodb://{user}:{passwd}@{host}:{port}/?replicaSet=message-replicas".format(
             user=user,

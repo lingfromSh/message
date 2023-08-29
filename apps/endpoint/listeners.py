@@ -28,20 +28,14 @@ async def register_websocket_endpoint(connection_id, data):
 
     data = {"external_id": external_id, "connection_id": connection_id}
 
-    queue = app.ctx.infra.queue()
-    async with queue.connection_pool.acquire() as connection:
-        await AddEndpointWebsocketTopicSubscriber.delay_notify(
-            connection,
-            message=Message(body=orjson.dumps(data)),
-            delay=timedelta(seconds=5),
-        )
+    await AddEndpointWebsocketTopicSubscriber.delay_notify(
+        message=Message(body=orjson.dumps(data)),
+        delay=timedelta(seconds=5),
+    )
 
 
 async def unregister_websocket_endpoint(connection_id):
-    queue = app.ctx.infra.queue()
-    async with queue.connection_pool.acquire() as connection:
-        await RemoveEndpointWebsocketTopicSubscriber.delay_notify(
-            connection,
-            message=Message(body=connection_id.encode()),
-            delay=timedelta(seconds=30),
-        )
+    await RemoveEndpointWebsocketTopicSubscriber.delay_notify(
+        message=Message(body=connection_id.encode()),
+        delay=timedelta(seconds=30),
+    )

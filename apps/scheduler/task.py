@@ -120,7 +120,7 @@ async def enqueue_future_task():
                     trigger_type = PlanTriggerType(trigger.type)
                     if trigger_type == PlanTriggerType.TIMER:
                         time_to_execute = trigger.timer_at
-                        await publish_task(connection, plan_dict, time_to_execute)
+                        await publish_task(plan_dict, time_to_execute)
                         time_to_execute_count += 1
                     else:
                         try:
@@ -142,9 +142,7 @@ async def enqueue_future_task():
                                     break
 
                                 trigger.last_trigger = time_to_execute
-                                await publish_task(
-                                    connection, plan_dict, time_to_execute
-                                )
+                                await publish_task(plan_dict, time_to_execute)
                                 time_to_execute_count += 1
                         except Exception:
                             logger.exception("Invalid cron expr")
