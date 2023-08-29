@@ -2,6 +2,7 @@ from umongo import Document
 from umongo import fields
 
 from utils import get_app
+from apps.template.utils import generate
 
 app = get_app()
 
@@ -19,3 +20,6 @@ class Template(Document):
 
     created_at = fields.AwareDateTimeField(required=True)
     updated_at = fields.AwareDateTimeField(required=True)
+
+    async def render(self, context={}):
+        return await generate(self.content)

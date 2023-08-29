@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from typing import Union
 from typing import List
 
 from pydantic import BaseModel
@@ -9,7 +10,6 @@ from pydantic import field_serializer
 from umongo.fields import Reference
 
 from apps.message.common.constants import MessageStatus
-from apps.message.models import Provider
 from utils import get_app
 
 from .types import ObjectID
@@ -21,7 +21,7 @@ class SendMessageInputModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     provider: ObjectID
-    realm: dict
+    realm: Union[ObjectID, dict]
 
     status: Optional[MessageStatus] = Field(default=MessageStatus.SENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -37,7 +37,7 @@ class MessageOutputModel(BaseModel):
 
     id: ObjectID = Field(alias="pk")
     provider: Reference
-    realm: dict
+    realm: Union[ObjectID, dict]
     status: MessageStatus
 
     created_at: datetime
