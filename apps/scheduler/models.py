@@ -7,7 +7,7 @@ from utils import get_app
 app = get_app()
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class PlanTrigger(EmbeddedDocument):
     # type is enum of PlanTriggerType
     type = fields.StringField(required=True)
@@ -26,13 +26,13 @@ class PlanTrigger(EmbeddedDocument):
     end_time = fields.AwareDateTimeField(required=False, allow_none=True)
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class SubPlan(EmbeddedDocument):
     provider = fields.ReferenceField("Provider", required=True)
     message = fields.DictField(required=True)
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class Plan(Document):
     name = fields.StringField(required=True)
 
@@ -56,7 +56,7 @@ class Plan(Document):
         )
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class PlanExecution(Document):
     plan = fields.ReferenceField("Plan", required=True)
     status = fields.StringField(required=True)

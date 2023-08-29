@@ -2,29 +2,26 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from sanic.log import logger
 from umongo.frameworks.motor_asyncio import MotorAsyncIOInstance
 
-from common.depend import Dependency
 
-
-class MongoDBDependency(Dependency, dependency_name="MongoDB", dependency_alias="mdb"):
-    @property
-    def uri(self):
-        return "mongodb://{user}:{passwd}@{host}:{port}/?replicaSet=message-replicas".format(
-            user=self.app.config.DATABASE.USER,
-            passwd=self.app.config.DATABASE.PASSWORD,
-            host=self.app.config.DATABASE.HOST,
-            port=self.app.config.DATABASE.PORT,
+class MongoDBDependency:
+    def __init__(
+        self,
+        host,
+        port,
+        user,
+        password,
+        max_pool_size: int = 200,
+        max_connecting: int = 400,
+    ):
+        self.uri = "mongodb://{user}:{passwd}@{host}:{port}/?replicaSet=message-replicas".format(
+            user=user,
+            passwd=password,
+            host=host,
+            port=port,
         )
-
-    async def prepare(self) -> bool:
-        self._db_client = AsyncIOMotorClient(
-            self.uri, maxPoolSize=200, maxConnecting=200
+        self.client = AsyncIOMotorClient(
+            self.uri, maxPoolSize=max_pool_size, maxConnecting=max_connecting
         )
-        self._prepared = self._db_client.message
-        self.app.ctx.doc_instance = MotorAsyncIOInstance(self._prepared)
-        self.app.ctx.db_client = self._db_client
-        self.is_prepared = True
-        logger.info("dependency:MongoDB is prepared")
-        return self.is_prepared
-
-    async def check(self) -> bool:
-        return True
+        self.db = self.client.message
+        self.doc_instance = MotorAsyncIOInstance(self.db)
+        logger.info("dependency: mongodb is configured")

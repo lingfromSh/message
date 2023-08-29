@@ -6,7 +6,7 @@ from utils import get_app
 app = get_app()
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class Provider(Document):
     type = fields.StringField(required=True, max_length=32)
     code = fields.StringField(required=True)
@@ -21,7 +21,7 @@ class Provider(Document):
         indexes = ("type", "code", "name", "-created_at", "-updated_at")
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class Message(Document):
     provider = fields.ReferenceField("Provider", required=True)
     realm = fields.DictField(required=True)

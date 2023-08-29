@@ -5,15 +5,7 @@ from sanic.log import logger
 
 from infrastructures import Infrastructure
 
-from infrastructures.mongodb import MongoDBDependency
 from infrastructures.websocket import WebsocketConnectionPoolDependency
-
-
-async def prepare_mongodb_dependency(app):
-    mongodb_dependency = MongoDBDependency(app)
-    await mongodb_dependency.prepare()
-    app.ctx.dependencies.add(mongodb_dependency)
-    app.ctx.db = mongodb_dependency._prepared
 
 
 async def prepare_websocket_pool_dependency(app):
@@ -70,7 +62,6 @@ def setup_app(application: Sanic):
     application.ctx.dependencies = set()
 
     application.before_server_start(setup_infrastructure)
-    application.before_server_start(prepare_mongodb_dependency)
     application.before_server_start(prepare_websocket_pool_dependency)
     application.before_server_start(acquire_worker_id)
     application.before_server_start(setup_task_scheduler)

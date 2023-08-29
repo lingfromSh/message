@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
-from .queue import QueueDependency
 from .cache import CacheDependency
+from .mongodb import MongoDBDependency
+from .queue import QueueDependency
 
 
 class Infrastructure(containers.DeclarativeContainer):
@@ -21,4 +22,12 @@ class Infrastructure(containers.DeclarativeContainer):
         sentinel_password=config.CACHE.SENTINEL_PASSWORD,
         master_set=config.CACHE.MASTER_SET,
         master_password=config.CACHE.MASTER_PASSWORD,
+    )
+
+    database = providers.Singleton(
+        MongoDBDependency,
+        user=config.DATABASE.USER,
+        password=config.DATABASE.PASSWORD,
+        host=config.DATABASE.HOST,
+        port=config.DATABASE.PORT,
     )

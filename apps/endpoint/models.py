@@ -9,7 +9,7 @@ app = get_app()
 cache = app.ctx.infra.cache()
 
 
-@app.ctx.doc_instance.register
+@app.ctx.infra.database().doc_instance.register
 class Endpoint(Document):
     external_id = fields.StringField(required=True, unique=True)
     tags = fields.ListField(fields.StringField(), required=False, allow_none=True)
