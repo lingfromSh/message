@@ -16,7 +16,7 @@ PONG = "#pong"
 
 class WebsocketPoolDependency:
     def __init__(self, app) -> None:
-        super().__init__(app)
+        self.app = app
         self.lock = asyncio.Lock()
         self.connections = {}
         self.send_queues = {}
@@ -26,6 +26,7 @@ class WebsocketPoolDependency:
         logger.info("dependency: websocket pool is configured")
 
     def _gen_id(self) -> str:
+        return "hello,world"
         return str(ULID())
 
     async def add_connection(self, connection) -> str:

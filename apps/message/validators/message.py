@@ -21,7 +21,7 @@ class SendMessageInputModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     provider: ObjectID
-    realm: Union[ObjectID, dict]
+    realm: Union[dict, ObjectID]
 
     status: Optional[MessageStatus] = Field(default=MessageStatus.SENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -37,7 +37,7 @@ class MessageOutputModel(BaseModel):
 
     id: ObjectID = Field(alias="pk")
     provider: Reference
-    realm: Union[ObjectID, dict]
+    realm: Union[dict, ObjectID]
     status: MessageStatus
 
     created_at: datetime

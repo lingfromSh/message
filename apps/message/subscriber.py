@@ -139,15 +139,15 @@ class ImmediateMessageTopicSubscriber(TopicSubscriber):
 
             try:
                 provider = get_provider(task.provider.type, task.provider.code)(
-                    **task.provider.config
+                    **(task.provider.config or {})
                 )
                 validated = provider.validate_message(config=task.message.realm)
 
-                result = await provider.send(task.provider.oid, validated)
+                result = await provider.send(task.provider.id, validated)
 
                 if result.status == MessageStatus.SUCCEEDED:
                     await Message.collection.update_one(
-                        {"_id": ObjectId(task.message.oid)},
+                        {"_id": ObjectId(task.message.id)},
                         {
                             "$set": {
                                 "status": result.status.value,

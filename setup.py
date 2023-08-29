@@ -56,5 +56,6 @@ def setup_app(application: Sanic):
     application.before_server_start(setup_infrastructure)
     application.before_server_start(acquire_worker_id)
     application.before_server_start(setup_task_scheduler)
+    application.before_server_start(setup_api)
     application.before_server_stop(stop_task_scheduler)
     application.before_server_stop(unset_infrastructure)

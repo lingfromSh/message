@@ -106,8 +106,8 @@ def register_consumer(app, queue_name, subscriber):
 
         async def func():
             queue = app.ctx.infra.queue()
-            async with queue.connection_pool.acquire() as connection:
-                channel: aio_pika.Channel = await connection.channel()
+            async with queue.channel_pool.acquire() as channel:
+                channel: aio_pika.Channel
                 queue: aio_pika.Queue = await channel.declare_queue(
                     queue_name, durable=subscriber.durable
                 )

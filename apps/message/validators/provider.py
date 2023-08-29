@@ -78,11 +78,11 @@ class UpdateProviderInputModel(EnsureProviderMixin, CheckConfigMixin, BaseModel)
 
 
 class DestroyProviderInputModel(BaseModel):
-    oids: List[ObjectID]
+    ids: List[ObjectID]
 
     async def delete(self):
         result = await Provider.collection.delete_many(
-            {"_id": {"$in": list(map(ObjectId, self.oids))}}
+            {"_id": {"$in": list(map(ObjectId, self.ids))}}
         )
         return result.deleted_count
 

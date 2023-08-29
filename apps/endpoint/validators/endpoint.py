@@ -44,19 +44,19 @@ class UpdateEndpointInputModel(BaseModel):
 
 
 class DestroyEndpointInputModel(BaseModel):
-    oids: Optional[List[ObjectID]]
+    ids: Optional[List[ObjectID]]
     external_ids: Optional[List[str]]
 
     @model_validator(mode="after")
     def ensure_at_least_one(self):
-        assert self.oids or self.external_ids, "ensure at least one is set"
+        assert self.ids or self.external_ids, "ensure at least one is set"
         return self
 
     async def delete(self):
         conditions = []
 
-        if self.oids:
-            conditions.append({"_id": {"$in": list(map(ObjectId, self.oids))}})
+        if self.ids:
+            conditions.append({"_id": {"$in": list(map(ObjectId, self.ids))}})
 
         if self.external_ids:
             conditions.append({"external_id": {"$in": self.external_ids}})

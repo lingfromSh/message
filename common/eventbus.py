@@ -6,10 +6,8 @@ from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.message import Message
 from pydantic import BaseModel
 from sanic import Sanic
-from sanic.log import logger
 
 from common.command import TopicSubscriber
-from infrastructures.queue import retry_message
 from utils import get_app
 
 __events__ = {}
