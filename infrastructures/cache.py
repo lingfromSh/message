@@ -1,3 +1,4 @@
+from typing import Any
 from redis.asyncio import Sentinel
 from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff  # 指数退避
@@ -5,41 +6,38 @@ from redis.exceptions import BusyLoadingError
 from redis.exceptions import ConnectionError
 from sanic.log import logger
 
-from common.depend import Dependency
 
-
-class CacheDependency(Dependency, dependency_name="Cache", dependency_alias="cache"):
-    async def prepare(self) -> bool:
-        cache_config = self.app.config.CACHE
-        sentinel_password_kwargs = {"password": cache_config.SENTINEL_PASSWORD}
-        master_password_kwargs = {"password": cache_config.MASTER_PASSWORD}
-        retry_kwargs = {
+class CacheDependency:
+    def __init__(
+        self,
+        sentinel_host,
+        sentinel_port,
+        sentinel_password,
+        master_set,
+        master_password,
+    ):
+        self.retry_kwargs = {
             "retry": Retry(ExponentialBackoff(), 3),
             "retry_on_timeout": True,
             "retry_on_error": [BusyLoadingError, ConnectionError],
         }
-        self._sentinel = Sentinel(
-            sentinels=[(cache_config.SENTINEL_HOST, cache_config.SENTINEL_PORT)],
-            sentinel_kwargs={**sentinel_password_kwargs, **retry_kwargs},
+        self.sentinel_password_kwargs = {"password": sentinel_password}
+        self.master_password_kwargs = {"password": master_password}
+
+        self.sentinel = Sentinel(
+            [(sentinel_host, sentinel_port)],
+            sentinel_kwargs={**self.sentinel_password_kwargs, **self.retry_kwargs},
             **{
                 "health_check_interval": 1,
-                **master_password_kwargs,
-                **retry_kwargs,
+                **self.master_password_kwargs,
+                **self.retry_kwargs,
             },
         )
-        self._prepared = self._sentinel.master_for(cache_config.MASTER_SET)
+        self.master = self.sentinel.master_for(master_set)
+        logger.info("dependency: cache is configured")
 
+    def __getattribute__(self, name: str) -> Any:
         try:
-            await self.get("HEALTH_CHECK")
-            self.is_prepared = True
-            logger.info("dependency:Cache is prepared")
-        except Exception as err:
-            logger.warn(f"dependency:Cache is not prepared, {str(err)}")
-        finally:
-            return self.is_prepared
-
-    async def check(self) -> bool:
-        if not self.is_prepared:
-            await self.prepare()
-            return self.is_prepared
-        return True
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            return object.__getattribute__(self.master, name)

@@ -1,1 +1,2 @@
 from .subscriber import InQueueMessageTopicSubscriber
+from .subscriber import ImmediateMessageTopicSubscriber

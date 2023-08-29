@@ -3,16 +3,10 @@ from apscheduler.triggers.interval import IntervalTrigger
 from sanic import Sanic
 from sanic.log import logger
 
-from infrastructures.cache import CacheDependency
+from infrastructures import Infrastructure
+
 from infrastructures.mongodb import MongoDBDependency
-from infrastructures.queue import QueueDependency
 from infrastructures.websocket import WebsocketConnectionPoolDependency
-
-
-async def prepare_cache_dependency(app):
-    cache_dependency = CacheDependency(app)
-    await cache_dependency.prepare()
-    app.ctx.dependencies.add(cache_dependency)
 
 
 async def prepare_mongodb_dependency(app):
@@ -22,23 +16,32 @@ async def prepare_mongodb_dependency(app):
     app.ctx.db = mongodb_dependency._prepared
 
 
-async def prepare_queue_dependency(app):
-    queue_dependency = QueueDependency(app)
-    await queue_dependency.prepare()
-    app.ctx.dependencies.add(queue_dependency)
-
-
 async def prepare_websocket_pool_dependency(app):
     websocket_pool_dependency = WebsocketConnectionPoolDependency(app)
     await websocket_pool_dependency.prepare()
     app.ctx.dependencies.add(websocket_pool_dependency)
 
 
+async def setup_infrastructure(app):
+    infra = Infrastructure()
+    infra.config.from_value(app.config)
+    infra.init_resources()
+    infra.check_dependencies()
+    app.ctx.infra = infra
+
+
+async def unset_infrastructure(app):
+    if hasattr(app.ctx, "infra"):
+        return
+    app.ctx.infra.shutdown_resources()
+
+
 async def acquire_worker_id(app):
     # TODO: if it fails to get worker id, server won't serve any request.
     app.ctx.workers = 4
-    app.ctx.worker_id = await app.ctx.cache.incr("worker") % app.ctx.workers
-    # logger.info(f"Worker: {app.ctx.worker_id}")
+    cache = app.ctx.infra.cache()
+    app.ctx.worker_id = await cache.incr("worker") % app.ctx.workers
+    logger.info(f"acquire worker id: {app.ctx.worker_id}")
 
 
 async def setup_task_scheduler(app):
@@ -65,11 +68,11 @@ def setup_api(app):
 
 def setup_app(application: Sanic):
     application.ctx.dependencies = set()
-    application.before_server_start(prepare_cache_dependency)
+
+    application.before_server_start(setup_infrastructure)
     application.before_server_start(prepare_mongodb_dependency)
-    application.before_server_start(prepare_queue_dependency)
     application.before_server_start(prepare_websocket_pool_dependency)
     application.before_server_start(acquire_worker_id)
     application.before_server_start(setup_task_scheduler)
-    application.before_server_start(setup_api)
     application.before_server_stop(stop_task_scheduler)
+    application.before_server_stop(unset_infrastructure)

@@ -28,6 +28,7 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
         semaphore: Semaphore = None,
         context: dict = ...,
     ):
+        cache = app.ctx.infra.cache()
         async with message.process(ignore_processed=True, requeue=True):
             try:
                 data = orjson.loads(message.body)
@@ -52,15 +53,13 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
                         external_id=data["external_id"],
                         websockets=[data["connection_id"]],
                     )
-                    await app.ctx.cache.set(
+                    await cache.set(
                         f"exid:{data['external_id']}:endpoint",
                         orjson.dumps(endpoint.dump()),
                     )
                     await Endpoint.collection.insert_one(endpoint.to_mongo(), session=s)
 
-            async with app.ctx.cache.lock(
-                f"modify.websocket.endpoint.connections", timeout=5
-            ):
+            async with cache.lock(f"modify.websocket.endpoint.connections", timeout=5):
                 async with await app.ctx.db_client.start_session() as session:
                     await session.with_transaction(register)
 
@@ -78,13 +77,15 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
         semaphore: Semaphore = None,
         context: dict = ...,
     ):
+        cache = app.ctx.infra.cache()
+
         async def unregister(s):
             modified_count = 0
             async for endpoint in Endpoint.find({"websockets": connection_id}):
                 websockets = set(endpoint.websockets)
                 websockets.remove(connection_id)
                 websockets = list(websockets)
-                await app.ctx.cache.set(
+                await cache.set(
                     f"exid:{endpoint.external_id}:endpoint",
                     orjson.dumps(endpoint.dump()),
                 )
@@ -103,9 +104,7 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
             except Exception:
                 await message.reject()
 
-            async with app.ctx.cache.lock(
-                f"modify.websocket.endpoint.connections", timeout=5
-            ):
+            async with cache.lock(f"modify.websocket.endpoint.connections", timeout=5):
                 async with await app.ctx.db_client.start_session() as session:
                     modified_count = await session.with_transaction(unregister)
 

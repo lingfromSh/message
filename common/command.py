@@ -105,7 +105,8 @@ def register_consumer(app, queue_name, subscriber):
             return
 
         async def func():
-            async with app.ctx.queue.acquire() as connection:
+            queue = app.ctx.infra.queue()
+            async with queue.connection_pool.acquire() as connection:
                 channel: aio_pika.Channel = await connection.channel()
                 queue: aio_pika.Queue = await channel.declare_queue(
                     queue_name, durable=subscriber.durable
@@ -194,11 +195,11 @@ async def publish(
 
     if connection is None:
         app = get_app()
-        async with app.ctx.channel.acquire() as channel:
+        queue = app.ctx.infra.queue()
+        async with queue.channel_pool.acquire() as channel:
             exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
             await exchange.publish(enrich(message), routing_key=topic)
     else:
         async with connection.channel(publisher_confirms=False) as channel:
             exchange = await channel.get_exchange(name=TOPIC_EXCHANGE_NAME)
             await exchange.publish(enrich(message), routing_key=topic)
-            # logger.info(f"publish message {message.message_id} to {topic}")

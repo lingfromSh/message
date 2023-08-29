@@ -6,6 +6,8 @@ from utils import get_app
 
 app = get_app()
 
+cache = app.ctx.infra.cache()
+
 
 @app.ctx.doc_instance.register
 class Endpoint(Document):
@@ -15,17 +17,13 @@ class Endpoint(Document):
     emails = fields.ListField(fields.EmailField(), required=False, allow_none=True)
 
     async def post_insert(self, ret):
-        await app.ctx.cache.set(
-            f"exid:{self.external_id}:endpoint", orjson.dumps(self.dump())
-        )
+        await cache.set(f"exid:{self.external_id}:endpoint", orjson.dumps(self.dump()))
 
     async def post_update(self, ret):
-        await app.ctx.cache.set(
-            f"exid:{self.external_id}:endpoint", orjson.dumps(self.dump())
-        )
+        await cache.set(f"exid:{self.external_id}:endpoint", orjson.dumps(self.dump()))
 
     async def post_delete(self, ret):
-        await app.ctx.cache.delete(f"exid:{self.external_id}:endpoint")
+        await cache.delete(f"exid:{self.external_id}:endpoint")
 
     class Meta:
         collection_name = "endpoints"

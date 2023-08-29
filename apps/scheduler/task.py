@@ -63,12 +63,14 @@ async def enqueue_future_task():
 
     providers = {provider.pk: provider async for provider in Provider.find()}
 
-    async with app.ctx.queue.acquire() as connection:
+    cache = app.ctx.infra.cache()
+    queue = app.ctx.infra.queue()
+    async with queue.connection_pool.acquire() as connection:
         total_plan_count = await Plan.count_documents(condition)
         limit = math.ceil(total_plan_count / app.ctx.workers)
         skip = app.ctx.worker_id * limit
         async for plan in Plan.find(condition).limit(limit).skip(skip):
-            lock = app.ctx.cache.lock(
+            lock = cache.lock(
                 name=rlock_name.format(pk=str(plan.pk)),
                 timeout=interval * 2,
             )

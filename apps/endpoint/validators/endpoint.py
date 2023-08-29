@@ -103,7 +103,8 @@ class ExID:
 
     async def decode(self):
         try:
-            raw = await app.ctx.cache.get(f"exid:{self.v}:endpoint")
+            cache = app.ctx.infra.cache()
+            raw = await cache.get(f"exid:{self.v}:endpoint")
             if raw:
                 data = orjson.loads(raw)
                 return data

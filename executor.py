@@ -39,5 +39,6 @@ async def handle_websocket(request, ws):
 
 @app.before_server_start
 async def setup_command_subscribers(app):
-    async with app.ctx.queue.acquire() as connection:
+    queue = app.ctx.infra.queue()
+    async with queue.connection_pool.acquire() as connection:
         await setup_command(app, connection)

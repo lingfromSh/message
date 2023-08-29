@@ -1,8 +1,8 @@
-from typing import Any
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import environ
+from inspect import getmembers
 from sanic.config import Config as SanicConfig
-from sanic.log import logger
 
 from .api import APIConfig
 from .cache import CacheConfig
@@ -34,7 +34,23 @@ print("[QUEUE Env Config]")
 print(config.QUEUE)
 
 
+def convert_config_to_dict(c) -> Dict:
+    ret = {}
+    for name, value in getmembers(c, lambda x: not callable(x)):
+        if not name.isupper():
+            continue
+        if isinstance(value, (str, int, list)):
+            ret[name] = value
+        else:
+            ret[name] = convert_config_to_dict(value)
+    return ret
+
+
 class ConfigProxy(SanicConfig):
+    def __init__(self):
+        super().__init__()
+        self.update_config(convert_config_to_dict(config))
+
     def __getattr__(self, attr: Any):
         try:
             return getattr(config, attr)

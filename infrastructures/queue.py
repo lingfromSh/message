@@ -1,66 +1,38 @@
-import asyncio
-
 from aio_pika import connect_robust
-from aio_pika.abc import AbstractIncomingMessage
+from aio_pika.abc import AbstractChannel, AbstractConnection
 from aio_pika.pool import Pool
 from sanic.log import logger
 
-from common.depend import Dependency
 
-
-def connection_pool_factory(app):
-    connection_kwargs = {
-        "host": app.config.QUEUE.HOST,
-        "port": app.config.QUEUE.PORT,
-        "login": app.config.QUEUE.USERNAME,
-        "password": app.config.QUEUE.PASSWORD,
-    }
-
-    async def connection_factory():
-        return await connect_robust(**connection_kwargs, timeout=1)
-
-    return connection_factory
-
-
-def connection_channel_factory(connection_pool):
-    async def channel_factory():
-        async with connection_pool.acquire() as connection:
-            return await connection.channel(publisher_confirms=False)
-
-    return channel_factory
-
-
-class QueueDependency(Dependency, dependency_name="Queue", dependency_alias="queue"):
-    MAX_CHANNEL_NUM = 8092
-
-    def __init__(self, app):
-        self.channel_counter = 0
-        super().__init__(app)
-
-    async def prepare(self) -> bool:
-        self.is_prepared = False
-
-        try:
-            self._prepared = Pool(connection_pool_factory(self.app), max_size=10)
-            self.app.ctx.channel = Pool(
-                connection_channel_factory(self._prepared), max_size=8092
+class QueueDependency:
+    def __init__(
+        self,
+        host,
+        port: int = 5672,
+        username: str = "guest",
+        password: str = None,
+        virtual_host: str = "/",
+        max_connection_size: int = 4,
+        max_channel_size: int = 8092,
+    ) -> None:
+        async def make_connection() -> AbstractConnection:
+            return await connect_robust(
+                host=host,
+                port=port,
+                login=username,
+                password=password,
+                virtualhost=virtual_host,
             )
-            self.is_prepared = True
-        except asyncio.TimeoutError:
-            self._prepared = None
-        if self.is_prepared:
-            logger.info("dependency:Queue is prepared")
-        return self.is_prepared
 
-    async def check(self) -> bool:
-        if not self.is_prepared:
-            await self.prepare()
+        async def make_channel() -> AbstractChannel:
+            async with self.connection_pool.acquire() as connection:
+                return await connection.channel()
 
-        return self.is_prepared
+        self.connection_pool: Pool[AbstractConnection] = Pool(
+            make_connection, max_size=max_connection_size
+        )
+        self.channel_pool: Pool[AbstractChannel] = Pool(
+            make_channel, max_size=max_channel_size
+        )
 
-
-async def retry_message(message: AbstractIncomingMessage):
-    retry_count = message.headers.get("retry", 0)
-    retry_count += 1
-    message.headers.update({"retry": retry_count})
-    await message.nack()
+        logger.info("dependency: queue is configured")
