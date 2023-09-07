@@ -55,7 +55,7 @@ async def update_endpoint(request, exid, **kwargs):
         )
         return endpoint
 
-    async with await app.ctx.db_client.start_session() as session:
+    async with await app.ctx.infra.database().client.start_session() as session:
         endpoint = await session.with_transaction(modify)
 
     return MessageJSONResponse(

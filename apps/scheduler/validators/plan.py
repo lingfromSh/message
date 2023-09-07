@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List
 from typing import Optional
+from typing import Union
 
 import crontabula
 from pydantic import BaseModel
@@ -69,7 +70,7 @@ class QueryPlanInputModel(BaseModel):
     page_size: Optional[int] = app.config.API.DEFAULT_PAGE_SIZE
 
 
-class CreatePlanTriggerInputModel(PlanTriggerOutputModel):
+class PlanTriggerInputModel(PlanTriggerOutputModel):
     @field_validator("repeat_at", mode="after")
     @classmethod
     def validate_repeat_at(cls, v: str):
@@ -90,16 +91,16 @@ class CreatePlanTriggerInputModel(PlanTriggerOutputModel):
         return self
 
 
-class CreatePlanSubPlanInputModel(BaseModel):
+class PlanSubPlanInputModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     provider: ObjectID
-    message: dict
+    message: Union[dict, ObjectID]
 
 
 class CreatePlanInputModel(BaseModel):
     name: str
-    triggers: List[CreatePlanTriggerInputModel]
-    sub_plans: List[CreatePlanSubPlanInputModel]
+    triggers: List[PlanTriggerInputModel]
+    sub_plans: List[PlanSubPlanInputModel]
 
     is_enabled: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -108,8 +109,8 @@ class CreatePlanInputModel(BaseModel):
 
 class UpdatePlanInputModel(BaseModel):
     name: Optional[str]
-    triggers: Optional[List[CreatePlanTriggerInputModel]]
-    sub_plans: Optional[List[CreatePlanSubPlanInputModel]]
+    triggers: Optional[List[PlanTriggerInputModel]]
+    sub_plans: Optional[List[PlanSubPlanInputModel]]
 
     is_enabled: Optional[bool]
     updated_at: datetime = Field(default_factory=datetime.utcnow)

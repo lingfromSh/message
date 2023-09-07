@@ -1,23 +1,24 @@
 import math
+
+from aio_pika.message import Message as QueueMessage
 from bson.objectid import ObjectId
 from sanic import Blueprint
 
-from common.webargs import webargs
-from aio_pika.message import Message as QueueMessage
+from apps.message.common.constants import MessageProviderType
 from apps.message.models import Message
 from apps.message.models import Provider
-from apps.message.common.constants import MessageProviderType
+from apps.message.subscriber import ImmediateBroadcastMessageTopicSubscriber
+from apps.message.utils import get_provider as get_provider_cls
 from apps.message.validators.message import MessageOutputModel
 from apps.message.validators.message import QueryMessageInputModel
 from apps.message.validators.message import SendMessageInputModel
-from apps.message.validators.provider import ProviderOutputModel
 from apps.message.validators.provider import CreateProviderInputModel
-from apps.message.validators.provider import UpdateProviderInputModel
+from apps.message.validators.provider import ProviderOutputModel
 from apps.message.validators.provider import QueryProviderInputModel
-from apps.message.subscriber import ImmediateMessageTopicSubscriber
-from apps.message.utils import get_provider as get_provider_cls
-from common.webargs import webargs
+from apps.message.validators.provider import UpdateProviderInputModel
+from apps.template.utils import get_db_template
 from common.response import MessageJSONResponse
+from common.webargs import webargs
 
 provider_bp = Blueprint("provider")
 message_bp = Blueprint("message")
@@ -108,7 +109,7 @@ async def update_provider(request, pk, **kwargs):
         )
         return provider
 
-    async with await app.ctx.db_client.start_session() as session:
+    async with await app.ctx.infra.database().client.start_session() as session:
         provider = await session.with_transaction(modify)
     return MessageJSONResponse(
         data=ProviderOutputModel.model_validate(provider).model_dump()
@@ -186,6 +187,7 @@ async def get_message(request, pk, **kwargs):
 @webargs(body=SendMessageInputModel)
 async def send_message(request, **kwargs):
     payload = kwargs["payload"]
+
     db_provider = await Provider.find_one({"_id": ObjectId(payload["provider"])})
     if not db_provider:
         raise ValueError("provider not found")
@@ -194,6 +196,13 @@ async def send_message(request, **kwargs):
     provider_cls = get_provider_cls(db_provider.type, db_provider.code)
 
     # check if message is valid
+    realm = payload["realm"]
+    if not isinstance(realm, dict):
+        template = await get_db_template(realm)
+        if not template.is_enabled:
+            raise ValueError("failed to send message because the template is disabled")
+        payload["realm"] = template.content
+
     validated = provider_cls.validate_message(payload["realm"])
 
     db_message = Message(
@@ -204,10 +213,10 @@ async def send_message(request, **kwargs):
         updated_at=payload["updated_at"],
     )
 
-    if provider_cls.info.type == MessageProviderType.WEBSOCKET:
+    if provider_cls.info.type != MessageProviderType.WEBSOCKET:
         await db_message.commit()
         immediate_message = (
-            ImmediateMessageTopicSubscriber.message_model.model_validate(
+            ImmediateBroadcastMessageTopicSubscriber.message_model.model_validate(
                 {
                     "provider": {
                         "id": db_provider.pk,
@@ -219,8 +228,7 @@ async def send_message(request, **kwargs):
                 }
             )
         )
-        await ImmediateMessageTopicSubscriber.notify(
-            connection=None,
+        await ImmediateBroadcastMessageTopicSubscriber.notify(
             message=QueueMessage(body=immediate_message.model_dump_json().encode()),
         )
     else:

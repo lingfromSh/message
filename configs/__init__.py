@@ -1,7 +1,12 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from inspect import getmembers
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Sequence
+from typing import Union
 
 import environ
-from inspect import getmembers
 from sanic.config import Config as SanicConfig
 
 from .api import APIConfig

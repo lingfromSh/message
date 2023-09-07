@@ -110,7 +110,7 @@ def register_consumer(app, queue_name, subscriber):
                     queue_name, durable=subscriber.durable
                 )
                 try:
-                    logger.info(f"handler messages from {subscriber.topic}")
+                    logger.info(f"handle messages from {subscriber.topic}")
                     async with queue.iterator() as q:
                         async for m in q:
                             await subscriber.handle(app, m, context={})

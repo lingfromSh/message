@@ -10,7 +10,16 @@ from apps.message.models import Provider
 from apps.scheduler.common.constants import PlanTriggerType
 from apps.scheduler.models import Plan
 from apps.scheduler.utils import publish_task
+from apps.template.utils import get_db_template
 from utils import get_app
+
+
+async def convert_template_to_message(message):
+    # TODO: don't convert disabled template to message
+    template = await get_db_template(id=message)
+    if not template.is_enabled:
+        return {}
+    return template.content
 
 
 async def enqueue_future_task():
@@ -64,91 +73,91 @@ async def enqueue_future_task():
     providers = {provider.pk: provider async for provider in Provider.find()}
 
     cache = app.ctx.infra.cache()
-    queue = app.ctx.infra.queue()
-    async with queue.connection_pool.acquire() as connection:
-        total_plan_count = await Plan.count_documents(condition)
-        limit = math.ceil(total_plan_count / app.ctx.workers)
-        skip = app.ctx.worker_id * limit
-        async for plan in Plan.find(condition).limit(limit).skip(skip):
-            lock = cache.lock(
-                name=rlock_name.format(pk=str(plan.pk)),
-                timeout=interval * 2,
-            )
-            if not await lock.acquire(blocking=False):
-                # logger.info(f"plan: {plan.pk} is processed, then skip it")
-                continue
+    total_plan_count = await Plan.count_documents(condition)
+    limit = math.ceil(total_plan_count / app.ctx.workers)
+    skip = app.ctx.worker_id * limit
+    async for plan in Plan.find(condition).limit(limit).skip(skip):
+        lock = cache.lock(
+            name=rlock_name.format(pk=str(plan.pk)),
+            timeout=interval * 2,
+        )
+        if not await lock.acquire(blocking=False):
+            # logger.info(f"plan: {plan.pk} is processed, then skip it")
+            continue
 
-            # TODO: 增加一个任务，长时间没有变化的任务置为失败
+        # TODO: 增加一个任务，长时间没有变化的任务置为失败
 
-            plan_dict = {
-                "id": plan.pk,
-                "is_enabled": plan.is_enabled,
-                "triggers": [
-                    {
-                        "type": t.type,
-                        "repeat_at": t.repeat_at,
-                        "timer_at": t.timer_at,
-                        "repeat_time": t.repeat_time,
-                        "start_time": t.start_time,
-                        "end_time": t.end_time,
-                    }
-                    for t in plan.triggers
-                ],
-                "sub_plans": [
-                    {
-                        "provider": {
-                            "id": sub_plan.provider.pk,
-                            "type": providers.get(sub_plan.provider.pk).type,
-                            "code": providers.get(sub_plan.provider.pk).code,
-                            "config": providers.get(sub_plan.provider.pk).config or {},
-                        },
-                        "message": sub_plan.message,
-                    }
-                    for sub_plan in plan.sub_plans
-                ],
-            }
+        plan_dict = {
+            "id": plan.pk,
+            "is_enabled": plan.is_enabled,
+            "triggers": [
+                {
+                    "type": t.type,
+                    "repeat_at": t.repeat_at,
+                    "timer_at": t.timer_at,
+                    "repeat_time": t.repeat_time,
+                    "start_time": t.start_time,
+                    "end_time": t.end_time,
+                }
+                for t in plan.triggers
+            ],
+            "sub_plans": [
+                {
+                    "provider": {
+                        "id": sub_plan.provider.pk,
+                        "type": providers.get(sub_plan.provider.pk).type,
+                        "code": providers.get(sub_plan.provider.pk).code,
+                        "config": providers.get(sub_plan.provider.pk).config or {},
+                    },
+                    "message": sub_plan.message
+                    if isinstance(sub_plan.message, dict)
+                    else convert_template_to_message(sub_plan.message),
+                }
+                for sub_plan in plan.sub_plans
+            ],
+        }
 
-            try:
-                time_to_execute_count = 0
-                for trigger in plan.triggers:
-                    if now < trigger.start_time:
+        try:
+            time_to_execute_count = 0
+            for trigger in plan.triggers:
+                if now < trigger.start_time:
+                    continue
+
+                if trigger.end_time is not None and now > trigger.end_time:
+                    continue
+
+                trigger_type = PlanTriggerType(trigger.type)
+                if trigger_type == PlanTriggerType.TIMER:
+                    time_to_execute = trigger.timer_at
+                    await publish_task(plan_dict, time_to_execute)
+                    time_to_execute_count += 1
+                else:
+                    try:
+                        cron = crontabula.parse(trigger.repeat_at)
+                        start_time = max(
+                            start, trigger.last_trigger or trigger.start_time
+                        )
+                        for time_to_execute in cron.date_times(start=start_time):
+                            time_to_execute = time_to_execute.astimezone(UTC)
+                            # only compute execution in this duration
+                            if time_to_execute > end:
+                                break
+
+                            # skip executing after end time
+                            if (
+                                trigger.end_time is not None
+                                and time_to_execute > trigger.end_time
+                            ):
+                                break
+
+                            trigger.last_trigger = time_to_execute
+                            await publish_task(plan_dict, time_to_execute)
+                            time_to_execute_count += 1
+                    except Exception:
+                        logger.exception("Invalid cron expr")
                         continue
 
-                    if trigger.end_time is not None and now > trigger.end_time:
-                        continue
-
-                    trigger_type = PlanTriggerType(trigger.type)
-                    if trigger_type == PlanTriggerType.TIMER:
-                        time_to_execute = trigger.timer_at
-                        await publish_task(plan_dict, time_to_execute)
-                        time_to_execute_count += 1
-                    else:
-                        try:
-                            cron = crontabula.parse(trigger.repeat_at)
-                            start_time = max(
-                                start, trigger.last_trigger or trigger.start_time
-                            )
-                            for time_to_execute in cron.date_times(start=start_time):
-                                time_to_execute = time_to_execute.astimezone(UTC)
-                                # only compute execution in this duration
-                                if time_to_execute > end:
-                                    break
-
-                                # skip executing after end time
-                                if (
-                                    trigger.end_time is not None
-                                    and time_to_execute > trigger.end_time
-                                ):
-                                    break
-
-                                trigger.last_trigger = time_to_execute
-                                await publish_task(plan_dict, time_to_execute)
-                                time_to_execute_count += 1
-                        except Exception:
-                            logger.exception("Invalid cron expr")
-                            continue
-
-                logger.info(f"add future execution: {time_to_execute_count}")
-            except Exception:
-                logger.exception("got invalid plan")
-                await lock.release()
+            logger.info(f"add future execution: {time_to_execute_count}")
+        except Exception:
+            logger.exception("got invalid plan")
+            await lock.release()

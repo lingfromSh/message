@@ -9,8 +9,8 @@ from umongo.fields import Reference
 
 from apps.scheduler.common.constants import PlanExecutionStatus
 from utils import get_app
-from .types import ObjectID
 
+from .types import ObjectID
 
 app = get_app()
 

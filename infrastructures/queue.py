@@ -1,5 +1,6 @@
 from aio_pika import connect_robust
-from aio_pika.abc import AbstractChannel, AbstractConnection
+from aio_pika.abc import AbstractChannel
+from aio_pika.abc import AbstractConnection
 from aio_pika.pool import Pool
 from sanic.log import logger
 

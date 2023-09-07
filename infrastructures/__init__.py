@@ -1,5 +1,7 @@
+from dependency_injector import containers
+from dependency_injector import providers
 from sanic import Sanic
-from dependency_injector import containers, providers
+
 from .cache import CacheDependency
 from .mongodb import MongoDBDependency
 from .queue import QueueDependency

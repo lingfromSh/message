@@ -41,7 +41,8 @@ async def stop_task_scheduler(app):
 
 def setup_api(app):
     from apps.endpoint.api import bp as endpoint_blueprint
-    from apps.message.api import provider_bp, message_bp
+    from apps.message.api import message_bp
+    from apps.message.api import provider_bp
     from apps.scheduler.api import bp as scheduler_blueprint
 
     app.blueprint(endpoint_blueprint)

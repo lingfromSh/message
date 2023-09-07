@@ -1,16 +1,17 @@
 import math
+
 from bson.objectid import ObjectId
 from sanic import Blueprint
-from common.webargs import webargs
-from apps.template.validators.template import (
-    QueryTemplateInputModel,
-    CreateTemplateInputModel,
-    UpdateTemplateInputModel,
-    TemplateOutputModel,
-)
-from apps.template.models import Template
-from common.response import MessageJSONResponse
 
+from apps.message.utils import get_db_provider
+from apps.message.utils import get_provider
+from apps.template.models import Template
+from apps.template.validators.template import CreateTemplateInputModel
+from apps.template.validators.template import QueryTemplateInputModel
+from apps.template.validators.template import TemplateOutputModel
+from apps.template.validators.template import UpdateTemplateInputModel
+from common.response import MessageJSONResponse
+from common.webargs import webargs
 
 bp = Blueprint("template")
 
@@ -57,6 +58,13 @@ async def get_templates(request, **kwargs):
 @webargs(body=CreateTemplateInputModel)
 async def create_template(request, **kwargs):
     payload = kwargs["payload"]
+    provider_id = kwargs["provider"]
+    content = payload["content"]
+
+    provider = await get_db_provider(id=provider_id)
+    provider_cls = get_provider(provider.type, provider.code)
+    provider_cls.validate_message(content)
+
     template = Template(**payload)
     await template.commit()
 

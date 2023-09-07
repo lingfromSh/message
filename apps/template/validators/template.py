@@ -1,8 +1,11 @@
-from typing import Optional, List
+from datetime import UTC
+from datetime import datetime
+from typing import List
+from typing import Optional
 
-from datetime import datetime, UTC
 from pydantic import BaseModel
 from pydantic import Field
+
 from apps.message.validators.provider import ProviderOutputModel
 from apps.template.validators.types import ObjectID
 from utils import get_app

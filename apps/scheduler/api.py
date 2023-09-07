@@ -1,19 +1,19 @@
 import math
-from sanic import Blueprint
-from common.webargs import webargs
-from bson.objectid import ObjectId
 
+from bson.objectid import ObjectId
+from sanic import Blueprint
+
+from apps.scheduler.models import Plan
+from apps.scheduler.models import PlanExecution
+from apps.scheduler.validators.execution import PlanExecutionOutputModel
+from apps.scheduler.validators.execution import QueryPlanExecutionInputModel
+from apps.scheduler.validators.plan import CreatePlanInputModel
 from apps.scheduler.validators.plan import PlanOutputModel
 from apps.scheduler.validators.plan import QueryPlanInputModel
-from apps.scheduler.validators.plan import CreatePlanInputModel
 from apps.scheduler.validators.plan import UpdatePlanInputModel
-from apps.scheduler.validators.execution import QueryPlanExecutionInputModel
-from apps.scheduler.validators.execution import PlanExecutionOutputModel
-
-from apps.scheduler.models import Plan, PlanExecution
-
+from apps.template.utils import get_db_template
 from common.response import MessageJSONResponse
-
+from common.webargs import webargs
 
 bp = Blueprint("scheduler")
 
@@ -60,6 +60,11 @@ async def filter_plans(request, **kwargs):
 @webargs(body=CreatePlanInputModel)
 async def create_plan(request, **kwargs):
     payload = kwargs["payload"]
+    sub_plans = payload["sub_plans"]
+    for sub_plan in sub_plans:
+        message = sub_plan["message"]
+        if not isinstance(message, dict):
+            await get_db_template(id=message)
     plan = Plan(**payload)
     await plan.commit()
     return MessageJSONResponse(data=PlanOutputModel.model_validate(plan).model_dump())
@@ -88,6 +93,10 @@ async def update_plan(request, pk, **kwargs):
         if triggers := payload.get("triggers"):
             plan.triggers = triggers
         if sub_plans := payload.get("sub_plans"):
+            for sub_plan in sub_plans:
+                message = sub_plan["message"]
+                if not isinstance(message, dict):
+                    await get_db_template(id=message)
             plan.sub_plans = sub_plans
         if payload.get("is_enabled") is not None:
             plan.is_enabled = payload["is_enabled"]
@@ -96,7 +105,7 @@ async def update_plan(request, pk, **kwargs):
         )
         return plan
 
-    async with await app.ctx.db_client.start_session() as session:
+    async with await app.ctx.infra.database().client.start_session() as session:
         plan = await session.with_transaction(modify)
 
     return MessageJSONResponse(data=PlanOutputModel.model_validate(plan).model_dump())

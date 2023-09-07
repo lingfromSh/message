@@ -19,16 +19,14 @@ from common.command import TopicSubscriber
 from common.eventbus import EventBusTopicSubscriber
 
 
-class InQueueMessageTopicSubscriber(TopicSubscriber):
-    topic: str = "inqueue.message"
-    durable = True
-    deadletter = True
-
+class InQueueMessageHandlerMixin:
     message_model = FuturePlanTask
 
     @classmethod
     def get_lock(cls, app, message):
-        return app.ctx.cache.lock(f"inqueue.message.handle.{message.message_id}.lock")
+        return app.ctx.infra.cache().lock(
+            f"inqueue.message.handle.{message.message_id}.lock"
+        )
 
     @classmethod
     async def is_message_processed(cls, app, message) -> bool:
@@ -113,11 +111,21 @@ class InQueueMessageTopicSubscriber(TopicSubscriber):
                 logger.info("invalid future message to send")
 
 
-class ImmediateMessageTopicSubscriber(TopicSubscriber):
-    topic: str = "immediate.message"
+class InQueueBroadcastMessageTopicSubscriber(
+    InQueueMessageHandlerMixin, TopicSubscriber
+):
+    topic: str = "inqueue.broadcast.message"
     durable = True
-    deadletter = False
+    deadletter = True
 
+
+class InQueueSharedMessageTopicSubscriber(InQueueMessageHandlerMixin, TopicSubscriber):
+    topic: str = "inqueue.message"
+    durable = True
+    deadletter = True
+
+
+class ImmediateMessageHandlerMixin:
     message_model = ImmediateTask
 
     @classmethod
@@ -157,3 +165,19 @@ class ImmediateMessageTopicSubscriber(TopicSubscriber):
                 logger.info("finished to send message")
             except Exception:
                 logger.exception("message is not valid - skip this task")
+
+
+class ImmediateBroadcastMessageTopicSubscriber(
+    ImmediateMessageHandlerMixin, TopicSubscriber
+):
+    topic: str = "immediate.broadcast.message"
+    durable = True
+    deadletter = False
+
+
+class ImmediateSharedMessageTopicSubscriber(
+    ImmediateMessageHandlerMixin, TopicSubscriber
+):
+    topic: str = "immediate.message"
+    durable = True
+    deadletter = False

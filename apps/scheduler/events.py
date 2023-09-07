@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from bson.objectid import ObjectId
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
@@ -24,7 +25,7 @@ class PlanExecutionCreateEvent(BaseModel):
 
 @event_handler(PlanExecutionCreateEvent)
 async def handle_plan_execution_create(event: PlanExecutionCreateEvent):
-    plan = await Plan.find_one({"_id": event.plan_id})
+    plan = await Plan.find_one({"_id": ObjectId(event.plan_id)})
     if not plan:
         raise CannotResolveError
 

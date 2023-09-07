@@ -8,8 +8,8 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import WrapSerializer
-from pydantic import field_serializer
 from pydantic import constr
+from pydantic import field_serializer
 from pydantic import model_validator
 from typing_extensions import Annotated
 

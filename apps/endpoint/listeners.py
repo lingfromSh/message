@@ -28,6 +28,7 @@ async def register_websocket_endpoint(connection_id, data):
 
     data = {"external_id": external_id, "connection_id": connection_id}
 
+    logger.info(f"register new endpoint: {external_id}")
     await AddEndpointWebsocketTopicSubscriber.delay_notify(
         message=Message(body=orjson.dumps(data)),
         delay=timedelta(seconds=5),

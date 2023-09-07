@@ -60,7 +60,7 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
                     await Endpoint.collection.insert_one(endpoint.to_mongo(), session=s)
 
             async with cache.lock(f"modify.websocket.endpoint.connections", timeout=5):
-                async with await app.ctx.db_client.start_session() as session:
+                async with await app.ctx.infra.database().client.start_session() as session:
                     await session.with_transaction(register)
 
 
@@ -105,7 +105,7 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
                 await message.reject()
 
             async with cache.lock(f"modify.websocket.endpoint.connections", timeout=5):
-                async with await app.ctx.db_client.start_session() as session:
+                async with await app.ctx.infra.database().client.start_session() as session:
                     modified_count = await session.with_transaction(unregister)
 
                     if modified_count == 0:

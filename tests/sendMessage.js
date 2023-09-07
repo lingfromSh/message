@@ -5,7 +5,7 @@ import http from 'k6/http';
 export default function () {
 
     let data = {
-        "provider": "64edb9ca3ab55df4c04d7ff3",
+        "provider": "64f94331c114d3a88b719304",
         "realm": {
             "connections": ["hello,world"],
             "action": "say.hello",

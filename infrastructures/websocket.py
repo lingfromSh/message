@@ -9,7 +9,6 @@ import orjson
 from sanic.log import logger
 from ulid import ULID
 
-
 PING = "#ping"
 PONG = "#pong"
 
@@ -26,7 +25,6 @@ class WebsocketPoolDependency:
         logger.info("dependency: websocket pool is configured")
 
     def _gen_id(self) -> str:
-        return "hello,world"
         return str(ULID())
 
     async def add_connection(self, connection) -> str:
@@ -135,16 +133,18 @@ class WebsocketPoolDependency:
             try:
                 data = await connection.recv()
                 await queue.put(data)
-                # logger.info(f"recv message: {data} from connection: {connection._id}")
+                logger.info(f"recv message: {data} from connection: {connection._id}")
             except Exception as err:
                 break
 
     async def notify_task(self, connection_id):
         while self.is_alive(connection_id):
             try:
-                # logger.info(f"notify connection: {connection_id}'s listeners")
                 data = await self.recv_queues[connection_id].get()
                 for listener in self.listeners.get(connection_id, {}).values():
+                    logger.info(
+                        f"notify connection: {connection_id}'s listeners: {listener}"
+                    )
                     await listener(connection_id, data)
             except Exception as err:
                 pass
