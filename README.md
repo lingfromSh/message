@@ -14,3 +14,8 @@ A general message notification system
 - MongoDB
 - RabbitMQ
 - Redis
+
+
+## Web UI
+
+![Preview](docs/preview.png)
