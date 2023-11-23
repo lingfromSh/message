@@ -60,10 +60,10 @@ class WebsocketMessageProviderModel(MessageProviderModel):
                 connections.append(connection)
 
         connections = list(
-            set(filter(lambda x: websocket_pool.is_alive(connection), connections))
+            set(filter(lambda c: websocket_pool.is_alive(c), connections))
         )
 
-        # logger.info(f"sending websocket message to {connections}")
+        logger.debug(f"sending websocket message to {connections}")
         for connection in connections:
             if await websocket_pool.send(
                 connection, data=message.model_dump_json(exclude=["connections"])

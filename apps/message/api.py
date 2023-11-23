@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 from sanic import Blueprint
 
 from apps.message.common.constants import MessageProviderType
+from apps.message.common.constants import MessageStatus
 from apps.message.models import Message
 from apps.message.models import Provider
 from apps.message.subscriber import ImmediateBroadcastMessageTopicSubscriber
@@ -146,7 +147,9 @@ async def filter_messages(request, **kwargs):
     limit = page_size
     offset = (page - 1) * page_size
     need_query_providers = set()
-    async for message in Message.find(condition).skip(offset).limit(limit):
+    async for message in Message.find(condition).sort({"created_at": -1}).skip(
+        offset
+    ).limit(limit):
         dump_messgage = MessageOutputModel.model_validate(message).model_dump()
         need_query_providers.add(dump_messgage["provider"])
         filtered.append(dump_messgage)
@@ -208,12 +211,12 @@ async def send_message(request, **kwargs):
     db_message = Message(
         provider=db_provider.pk,
         realm=payload["realm"],
-        status=payload["status"],
+        status=MessageStatus.SENDING.value,
         created_at=payload["created_at"],
         updated_at=payload["updated_at"],
     )
 
-    if provider_cls.info.type != MessageProviderType.WEBSOCKET:
+    if provider_cls.info.type == MessageProviderType.WEBSOCKET:
         await db_message.commit()
         immediate_message = (
             ImmediateBroadcastMessageTopicSubscriber.message_model.model_validate(

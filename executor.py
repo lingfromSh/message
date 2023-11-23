@@ -26,7 +26,7 @@ async def handle_websocket(request, ws):
     websocket_pool = request.app.ctx.infra.websocket()
     try:
         con_id = await websocket_pool.add_connection(ws)
-        logger.info(f"new connection connected -> {con_id}")
+        logger.debug(f"new connection connected -> {con_id}")
         await websocket_pool.add_listener(con_id, register_websocket_endpoint)
         await websocket_pool.add_close_callback(con_id, unregister_websocket_endpoint)
         await websocket_pool.send(

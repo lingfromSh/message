@@ -13,7 +13,7 @@ class QueueDependency:
         username: str = "guest",
         password: str = None,
         virtual_host: str = "/",
-        max_connection_size: int = 4,
+        max_connection_size: int = 10,
         max_channel_size: int = 8092,
     ) -> None:
         async def make_connection() -> AbstractConnection:
@@ -23,6 +23,7 @@ class QueueDependency:
                 login=username,
                 password=password,
                 virtualhost=virtual_host,
+                reconnect_interval=5,
             )
 
         async def make_channel() -> AbstractChannel:
@@ -36,4 +37,4 @@ class QueueDependency:
             make_channel, max_size=max_channel_size
         )
 
-        logger.info("dependency: queue is configured")
+        logger.debug("dependency: queue is configured")

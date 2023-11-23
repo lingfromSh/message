@@ -1,7 +1,8 @@
+from ulid import ULID
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 from sanic import Sanic
 from sanic.log import logger
+from common.constants import WORKER_CACHE_KEY, ACQUIRE_WORKER_ID_LOCK_CACHE_KEY
 
 from infrastructures import Infrastructure
 
@@ -21,22 +22,28 @@ async def unset_infrastructure(app):
 
 
 async def acquire_worker_id(app):
-    # TODO: if it fails to get worker id, server won't serve any request.
-    app.ctx.workers = 4
     cache = app.ctx.infra.cache()
-    app.ctx.worker_id = await cache.incr("worker") % app.ctx.workers
-    logger.info(f"acquire worker id: {app.ctx.worker_id}")
+    async with cache.lock(ACQUIRE_WORKER_ID_LOCK_CACHE_KEY, timeout=1):
+        app.ctx.workers = await cache.llen(WORKER_CACHE_KEY) + 1
+        app.ctx.worker_id = str(ULID())
+        app.ctx.worker_number = app.ctx.workers
+        await cache.lpush(WORKER_CACHE_KEY, app.ctx.worker_id)
+        logger.debug(f"acquire worker number: {app.ctx.worker_number}")
 
 
 async def setup_task_scheduler(app):
     scheduler = AsyncIOScheduler()
     scheduler.start()
     app.ctx.task_scheduler = scheduler
-    app.ctx.task_scheduler.add_job(app.purge_tasks, trigger=IntervalTrigger(minutes=1))
 
 
 async def stop_task_scheduler(app):
     app.ctx.task_scheduler.shutdown()
+
+
+async def unregister_worker_id(app):
+    cache = app.ctx.infra.cache()
+    await cache.lrem(WORKER_CACHE_KEY, 0, app.ctx.worker_id)
 
 
 def setup_api(app):
@@ -60,3 +67,4 @@ def setup_app(application: Sanic):
     application.before_server_start(setup_api)
     application.before_server_stop(stop_task_scheduler)
     application.before_server_stop(unset_infrastructure)
+    application.before_server_stop(unregister_worker_id)

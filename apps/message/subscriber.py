@@ -1,6 +1,6 @@
 import asyncio
-from datetime import UTC
 from datetime import datetime
+from datetime import UTC
 
 from aio_pika.abc import AbstractIncomingMessage
 from bson.objectid import ObjectId
@@ -15,11 +15,16 @@ from apps.message.validators.task import FuturePlanTask
 from apps.message.validators.task import ImmediateTask
 from apps.scheduler.events import PlanExecutionCreateEvent
 from apps.scheduler.events import PlanTriggerRepeatTimeDecreaseEvent
+from apps.scheduler.common.constants import PlanExecutionStatus
 from common.command import TopicSubscriber
 from common.eventbus import EventBusTopicSubscriber
 
 
 class InQueueMessageHandlerMixin:
+    """
+    messages wait to be sent
+    """
+
     message_model = FuturePlanTask
 
     @classmethod
@@ -48,7 +53,7 @@ class InQueueMessageHandlerMixin:
         context: dict = {},
     ):
         async with message.process(ignore_processed=True):
-            # logger.info(f"got message: {message.message_id}")
+            logger.debug(f"got message: {message.message_id}")
             events = []
             finished_sub_plans = 0
             try:
@@ -83,8 +88,6 @@ class InQueueMessageHandlerMixin:
                 logger.warning(f"failed to send or save message")
 
             try:
-                from apps.scheduler.common.constants import PlanExecutionStatus
-
                 execution = dict(
                     plan_id=task.id,
                     status=PlanExecutionStatus.IN_QUEUE,
@@ -108,7 +111,7 @@ class InQueueMessageHandlerMixin:
                     )
 
             except Exception:
-                logger.info("invalid future message to send")
+                logger.debug("invalid future message to send")
 
 
 class InQueueBroadcastMessageTopicSubscriber(
@@ -126,6 +129,10 @@ class InQueueSharedMessageTopicSubscriber(InQueueMessageHandlerMixin, TopicSubsc
 
 
 class ImmediateMessageHandlerMixin:
+    """
+    messages need send immediately
+    """
+
     message_model = ImmediateTask
 
     @classmethod
@@ -137,7 +144,7 @@ class ImmediateMessageHandlerMixin:
         context: dict = {},
     ):
         async with message.process(ignore_processed=True):
-            logger.info(f"got message: {message.message_id}")
+            logger.debug(f"got message: {message.message_id}")
 
             try:
                 task = ImmediateTask.model_validate_json(message.body)
@@ -162,7 +169,7 @@ class ImmediateMessageHandlerMixin:
                             }
                         },
                     )
-                logger.info("finished to send message")
+                logger.debug("finished to send message")
             except Exception:
                 logger.exception("message is not valid - skip this task")
 

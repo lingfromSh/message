@@ -92,6 +92,8 @@ class TopicSubscriber:
 
 __consumer_counter__ = {}
 
+__counter__ = 0
+
 
 def register_consumer(app, queue_name, subscriber):
     async def wrapped(max_workers: int = 1):
@@ -102,38 +104,34 @@ def register_consumer(app, queue_name, subscriber):
         if app.name != EXECUTOR_NAME:
             return
 
-        async def func():
+        async def func(app):
             queue = app.ctx.infra.queue()
             async with queue.channel_pool.acquire() as channel:
-                channel: aio_pika.Channel
                 queue: aio_pika.Queue = await channel.declare_queue(
-                    queue_name, durable=subscriber.durable
+                    queue_name, durable=subscriber.durable, auto_delete=True
                 )
                 try:
-                    logger.info(f"handle messages from {subscriber.topic}")
+                    logger.debug(f"handle messages from {subscriber.topic}")
                     async with queue.iterator() as q:
                         async for m in q:
                             await subscriber.handle(app, m, context={})
-                    logger.info("finished handling messages")
+                    logger.debug("finished handling messages")
                 except aio_pika.exceptions.ChannelInvalidStateError:
-                    logger.info(
+                    logger.error(
                         f"consumer:{subscriber.topic} rpc timeout - reinsert consumer into loop"
                     )
                 except Exception:
                     logger.exception(f"unexcepted error happend")
 
-                # wait for consumer done
-                await channel.close()
-
             __consumer_counter__[subscriber.topic] -= 1
-            logger.info(f"close consumer {subscriber.topic}")
+            logger.debug(f"close consumer {subscriber.topic}")
 
         for _ in range(max_workers):
             __consumer_counter__[subscriber.topic] = (
                 __consumer_counter__.get(subscriber.topic, 0) + 1
             )
-            app.add_task(func())
-        logger.info(f"start new consumer {subscriber.topic}")
+            app.add_task(func)
+        logger.debug(f"start new consumer {subscriber.topic}")
 
     app.ctx.task_scheduler.add_job(partial(wrapped, 10))
 
@@ -145,15 +143,13 @@ async def setup(app: sanic.Sanic, connection: aio_pika.abc.AbstractConnection) -
         )
         for subscriber in __topic_subscirbers__.values():
             if subscriber.type == "broadcast":
-                queue_name = (
-                    f"message.topic.sub.{subscriber.topic}.queue.{app.ctx.worker_id}"
-                )
+                queue_name = f"message.topic.sub.{subscriber.topic}.queue.{app.ctx.worker_number}"
             else:
                 queue_name = f"message.topic.sub.{subscriber.topic}.queue"
             queue = await channel.declare_queue(
-                name=queue_name, durable=subscriber.durable
+                name=queue_name, durable=subscriber.durable, auto_delete=True
             )
-            logger.info(f"declare queue: {queue_name}")
+            logger.debug(f"declare queue: {queue_name}")
             await queue.bind(exchange=exchange, routing_key=subscriber.topic)
             if subscriber.deadletter:
                 deadletter_queue_name = (
@@ -170,7 +166,7 @@ async def setup(app: sanic.Sanic, connection: aio_pika.abc.AbstractConnection) -
                 await deadletter_queue.bind(
                     exchange, routing_key=f"{subscriber.topic}.deadletter"
                 )
-            logger.info(f"setup topic subscriber: {subscriber.topic}")
+            logger.debug(f"setup topic subscriber: {subscriber.topic}")
             register_consumer(app, queue_name, subscriber)
 
 

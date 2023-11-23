@@ -9,14 +9,10 @@ import {
   Typography,
   Button,
   CardHeader,
-  Input,
-  Chip,
   Tabs,
   TabsHeader,
   Tab,
-  Avatar,
   IconButton,
-  Tooltip,
 } from "@material-tailwind/react";
 
 function StaticReportCard(props: { title: string, desc: string, static: number }) {
@@ -122,20 +118,14 @@ import {
 
 
 function TabsWithIcon() {
-  const data = [
+  const [data, setData] = useState([
     {
       label: "消息列表",
       value: "message_list",
       icon: EnvelopeIcon,
       desc: `所有消息, 包含所有单独发送的消息和计划执行产生的消息`,
-      headers: ["消息ID", "渠道类型", "发送状态", "接收人", "发送时间"],
+      headers: ["消息ID", "渠道类型", "发送状态", "发送时间"],
       rows: [
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
-        ["123456", "WEBSOCKET", "已发送", "lingfromsh@163.com", "2023-08-23 10:11:57"],
       ]
     },
     {
@@ -154,9 +144,38 @@ function TabsWithIcon() {
       headers: ["计划ID", "是否生效", "计划类型", "创建时间"],
       rows: []
     },
-  ];
+  ]);
+
+  const [tabIndex, setTabIndex] = useState("message_list");
+
+  // useEffect(() => {
+  //   // fetch data
+  //   if (tabIndex === 'message_list') {
+  //     fetch("http://localhost:8000/messages?page_size=10").then(
+  //       resp => {
+  //         let json = resp.json();
+  //         let newData = [...data];
+  //         newData[0].rows = [];
+  //         json.data.results.map(row => {
+  //           newData[0].rows.push([
+  //             row.id,
+  //             row.external_id,
+  //             row.status,
+  //             row.time_to_execute
+  //           ])
+  //         });
+  //         setData(newData);
+  //       }
+  //     )
+  //   } else if (tabIndex === 'endpoint_list') {
+
+  //   } else {
+
+  //   }
+  // });
+
   return (
-    <Tabs value="message_list" >
+    <Tabs value={tabIndex} >
       <TabsHeader>
         {data.map(({ label, value, icon }) => (
           <Tab key={value} value={value}>
@@ -193,7 +212,6 @@ export default function Page() {
       $websocket.current = initWebsocket();
       $websocket.current.addEventListener("message", ({ data }) => {
         let packet = JSON.parse(data);
-        console.log(packet);
         setTotalMsgCount(packet.total_count_of_messages);
         setTodayMsgCount(packet.today_count_of_messages);
         setTotalEndpointCount(packet.total_count_of_endpoints);

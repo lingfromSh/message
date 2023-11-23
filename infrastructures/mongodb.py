@@ -10,18 +10,20 @@ class MongoDBDependency:
         port,
         user,
         password,
-        max_pool_size: int = 1000,
+        rs="message-replicas",
+        max_pool_size: int = 10,
         max_connecting: int = 1000,
     ):
-        self.uri = "mongodb://{user}:{passwd}@{host}:{port}/?replicaSet=message-replicas".format(
+        self.uri = "mongodb://{user}:{passwd}@{host}:{port}/?replicaSet={rs}".format(
             user=user,
             passwd=password,
             host=host,
             port=port,
+            rs=rs,
         )
         self.client = AsyncIOMotorClient(
             self.uri, maxPoolSize=max_pool_size, maxConnecting=max_connecting
         )
         self.db = self.client.message
         self.doc_instance = MotorAsyncIOInstance(self.db)
-        logger.info("dependency: mongodb is configured")
+        logger.debug("dependency: mongodb is configured")

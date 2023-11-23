@@ -1,5 +1,4 @@
 import math
-from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
@@ -23,7 +22,7 @@ async def convert_template_to_message(message):
 
 
 async def enqueue_future_task():
-    # logger.info("start enqueueing tasks")
+    logger.debug("start enqueueing tasks")
     now = datetime.now(tz=UTC)
     app = get_app()
     rlock_name = "plan.{pk}.lock"
@@ -82,7 +81,7 @@ async def enqueue_future_task():
             timeout=interval * 2,
         )
         if not await lock.acquire(blocking=False):
-            # logger.info(f"plan: {plan.pk} is processed, then skip it")
+            logger.debug(f"plan: {plan.pk} is processed, then skip it")
             continue
 
         # TODO: 增加一个任务，长时间没有变化的任务置为失败
@@ -157,7 +156,7 @@ async def enqueue_future_task():
                         logger.exception("Invalid cron expr")
                         continue
 
-            logger.info(f"add future execution: {time_to_execute_count}")
+            logger.debug(f"add future execution: {time_to_execute_count}")
         except Exception:
             logger.exception("got invalid plan")
             await lock.release()

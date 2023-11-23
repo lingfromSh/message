@@ -16,7 +16,7 @@ export default function () {
         ],
         "sub_plans": [
             {
-                "provider": "64f94331c114d3a88b719304",
+                "provider": "64feee73e52c71f19a454cb3",
                 "message": {
                     "connections": ["exid:studio:1"],
                     "action": "say.hello",

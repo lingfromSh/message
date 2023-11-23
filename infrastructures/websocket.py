@@ -3,14 +3,11 @@ from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
 from typing import Any
+from sanic.exceptions import WebsocketClosed
 
-import async_timeout
 import orjson
 from sanic.log import logger
 from ulid import ULID
-
-PING = "#ping"
-PONG = "#pong"
 
 
 class WebsocketPoolDependency:
@@ -22,7 +19,7 @@ class WebsocketPoolDependency:
         self.recv_queues = {}
         self.close_callbacks = {}
         self.listeners = {}
-        logger.info("dependency: websocket pool is configured")
+        logger.debug("dependency: websocket pool is configured")
 
     def _gen_id(self) -> str:
         return str(ULID())
@@ -42,9 +39,6 @@ class WebsocketPoolDependency:
                 name=f"websocket_{id}_recv_task",
             )
             self.app.add_task(self.notify_task(id), name=f"websocket_{id}_notify_task")
-            self.app.add_task(
-                self.is_alive_task(id), name=f"websocket_{id}_is_alive_task"
-            )
             setattr(connection, "_id", id)
             return connection._id
 
@@ -81,7 +75,7 @@ class WebsocketPoolDependency:
                 return
 
         async with self.lock:
-            # logger.info(f"remove connection: {connection_id}")
+            logger.debug(f"remove connection: {connection_id}")
 
             with suppress(Exception):
                 await self.app.cancel_task(f"websocket_{connection_id}_send_task")
@@ -89,8 +83,6 @@ class WebsocketPoolDependency:
                 await self.app.cancel_task(f"websocket_{connection_id}_recv_task")
             with suppress(Exception):
                 await self.app.cancel_task(f"websocket_{connection_id}_notify_task")
-            with suppress(Exception):
-                await self.app.cancel_task(f"websocket_{connection_id}_is_alive_task")
 
             if connection_id in self.send_queues:
                 del self.send_queues[connection_id]
@@ -108,6 +100,9 @@ class WebsocketPoolDependency:
             if connection_id in self.connections:
                 del self.connections[connection_id]
 
+            # remove cancelled tasks and completed tasks
+            self.app.purge_tasks()
+
     async def do_close_callbacks(self, connection_id):
         for cb in self.close_callbacks.get(connection_id, []):
             self.app.add_task(cb(connection_id))
@@ -124,63 +119,43 @@ class WebsocketPoolDependency:
                     await connection.send(data)
                 else:
                     await connection.send(orjson.dumps(data).decode())
-                queue.task_done()
+                logger.info(f"send message: {data} to connection: {connection._id}")
+            except WebsocketClosed:
+                break
             except Exception as err:
+                logger.exception(f"failed to send task: {err}")
                 break
 
     async def recv_task(self, queue, connection):
         while self.is_alive(connection):
             try:
                 data = await connection.recv()
+                logger.debug(f"recv message: {data} from connection: {connection._id}")
                 await queue.put(data)
-                logger.info(f"recv message: {data} from connection: {connection._id}")
+            except WebsocketClosed:
+                break
             except Exception as err:
+                logger.exception(
+                    f"failed to recv task for connection[{connection._id}]: {err}"
+                )
                 break
 
     async def notify_task(self, connection_id):
         while self.is_alive(connection_id):
             try:
+                logger.debug(f"notify connection: {connection_id}")
                 data = await self.recv_queues[connection_id].get()
                 for listener in self.listeners.get(connection_id, {}).values():
-                    logger.info(
-                        f"notify connection: {connection_id}'s listeners: {listener}"
-                    )
                     await listener(connection_id, data)
+            except WebsocketClosed:
+                break
             except Exception as err:
-                pass
-
-    async def is_alive_task(self, connection_id: str):
-        if hasattr(connection_id, "_id"):
-            connection_id = connection_id._id
-
-        get_pong = asyncio.Event()
-
-        async def wait_pong(connection_id, data):
-            if data != PONG:
-                return
-            get_pong.set()
-
-        while True:
-            get_pong.clear()
-            await self.send(connection_id, PING)
-            listener_id = await self.add_listener(connection_id, wait_pong)
-
-            with suppress(asyncio.TimeoutError):
-                async with async_timeout.timeout(
-                    self.app.config.WEBSOCKET_PING_TIMEOUT
-                ):
-                    await get_pong.wait()
-
-            await self.remove_listener(connection_id, listener_id)
-            if get_pong.is_set():
-                # this connection is closed
-                await asyncio.sleep(self.app.config.WEBSOCKET_PING_INTERVAL)
-            else:
-                await self.remove_connection(connection_id)
+                logger.exception(f"failed to notify connection[{connection_id}]: {err}")
+                break
 
     async def wait_closed(self, connection_id: str):
         """
-        if negative=True, only release when client close this connection.
+        only release when this connection lost
         """
         while self.is_alive(connection_id):
             await asyncio.sleep(0)

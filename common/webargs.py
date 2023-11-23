@@ -73,9 +73,16 @@ def webargs(query=None, body=None, path=None, headers=None):
                 )
             kwargs.update(result)
 
-            response = f(request, *args, **kwargs)
-            if isawaitable(response):
-                response = await response
+            try:
+                response = f(request, *args, **kwargs)
+                if isawaitable(response):
+                    response = await response
+            except ValidationError as e:
+                return MessageJSONResponse(
+                    data=None,
+                    status=422,
+                    message=orjson.loads(e.json()),
+                )
 
             return response
 

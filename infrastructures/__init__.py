@@ -35,6 +35,7 @@ class Infrastructure(containers.DeclarativeContainer):
         password=config.DATABASE.PASSWORD,
         host=config.DATABASE.HOST,
         port=config.DATABASE.PORT,
+        rs=config.DATABASE.REPLICA_SET,
     )
 
     websocket = providers.Singleton(WebsocketPoolDependency, app=app)

@@ -20,7 +20,6 @@ setup_app(app)
 async def add_planner_task(app):
     from apps.scheduler.task import enqueue_future_task
 
-    app.add_task(enqueue_future_task)
-    app.add_task(enqueue_future_task)
-    app.add_task(enqueue_future_task)
-    app.add_task(enqueue_future_task)
+    app.ctx.task_scheduler.add_job(
+        enqueue_future_task, trigger=IntervalTrigger(seconds=15)
+    )

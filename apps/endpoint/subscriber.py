@@ -95,7 +95,7 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
                     session=s,
                 )
                 modified_count += updated.modified_count
-                # logger.info(f"unregister websocket connection: {connection_id}")
+                # logger.debug(f"unregister websocket connection: {connection_id}")
             return modified_count
 
         async with message.process(ignore_processed=True, requeue=True):

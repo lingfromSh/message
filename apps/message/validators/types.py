@@ -1,16 +1,19 @@
-from typing import Annotated
+from typing import Annotated, Union
 
 from bson.objectid import ObjectId
 from pydantic import AfterValidator
 from pydantic import PlainSerializer
+from pydantic import WrapSerializer
 from pydantic import PlainValidator
+from pydantic import ValidationError
 
 from apps.endpoint.validators.endpoint import ETag
 from apps.endpoint.validators.endpoint import ExID
 
-ObjectID = Annotated[
-    str, PlainValidator(lambda x: ObjectId(x)), PlainSerializer(lambda x: str(x))
-]
+
+def validate_objectid(v: Union[str, ObjectId]):
+    assert isinstance(v, (str, ObjectId))
+    return ObjectId(v) if isinstance(v, str) else v
 
 
 def validate_etag(v: str):
@@ -27,3 +30,7 @@ def validate_exid(v: str):
 EndpointTag = Annotated[ETag, PlainValidator(validate_etag)]
 
 EndpointExID = Annotated[ExID, PlainValidator(validate_exid)]
+
+ObjectID = Annotated[
+    ObjectId, PlainValidator(validate_objectid), PlainSerializer(lambda x: str(x))
+]

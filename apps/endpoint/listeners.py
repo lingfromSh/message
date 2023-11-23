@@ -28,7 +28,7 @@ async def register_websocket_endpoint(connection_id, data):
 
     data = {"external_id": external_id, "connection_id": connection_id}
 
-    logger.info(f"register new endpoint: {external_id}")
+    logger.debug(f"register new endpoint: {external_id}")
     await AddEndpointWebsocketTopicSubscriber.delay_notify(
         message=Message(body=orjson.dumps(data)),
         delay=timedelta(seconds=5),
@@ -36,6 +36,7 @@ async def register_websocket_endpoint(connection_id, data):
 
 
 async def unregister_websocket_endpoint(connection_id):
+    logger.debug(f"unregister new endpoint: {connection_id}")
     await RemoveEndpointWebsocketTopicSubscriber.delay_notify(
         message=Message(body=connection_id.encode()),
         delay=timedelta(seconds=30),

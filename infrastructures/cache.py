@@ -35,7 +35,7 @@ class CacheDependency:
             },
         )
         self.master = self.sentinel.master_for(master_set)
-        logger.info("dependency: cache is configured")
+        logger.debug("dependency: cache is configured")
 
     def __getattribute__(self, name: str) -> Any:
         try:
