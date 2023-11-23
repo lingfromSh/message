@@ -17,5 +17,3 @@ A general message notification system
 
 
 ## Web UI
-
-![Preview](docs/preview.png)
