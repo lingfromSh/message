@@ -277,32 +277,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "anyio"
-version = "4.1.0"
-description = "High level compatibility layer for multiple asynchronous event loop implementations"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "anyio-4.1.0-py3-none-any.whl", hash = "sha256:56a415fbc462291813a94528a779597226619c8e78af7de0507333f700011e5f"},
-    {file = "anyio-4.1.0.tar.gz", hash = "sha256:5a0bec7085176715be77df87fc66d6c9d70626bd752fcc85f57cdbee5b3760da"},
-]
-
-[package.dependencies]
-exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
-idna = ">=2.8"
-sniffio = ">=1.1"
-
-[package.extras]
-doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
-test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
-trio = ["trio (>=0.23)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "apscheduler"
 version = "3.10.4"
 description = "In-process task scheduler with Cron-like capabilities"
@@ -1139,42 +1113,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "h2"
-version = "4.1.0"
-description = "HTTP/2 State-Machine based protocol implementation"
-optional = false
-python-versions = ">=3.6.1"
-files = [
-    {file = "h2-4.1.0-py3-none-any.whl", hash = "sha256:03a46bcf682256c95b5fd9e9a99c1323584c3eec6440d379b9903d709476bc6d"},
-    {file = "h2-4.1.0.tar.gz", hash = "sha256:a83aca08fbe7aacb79fec788c9c0bac936343560ed9ec18b82a13a12c28d2abb"},
-]
-
-[package.dependencies]
-hpack = ">=4.0,<5"
-hyperframe = ">=6.0,<7"
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "hpack"
-version = "4.0.0"
-description = "Pure-Python HPACK header compression"
-optional = false
-python-versions = ">=3.6.1"
-files = [
-    {file = "hpack-4.0.0-py3-none-any.whl", hash = "sha256:84a076fad3dc9a9f8063ccb8041ef100867b1878b25ef0ee63847a5d53818a6c"},
-    {file = "hpack-4.0.0.tar.gz", hash = "sha256:fc41de0c63e687ebffde81187a948221294896f6bdc0ae2312708df339430095"},
-]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "html5tagger"
 version = "1.3.0"
 description = "Pythonic HTML generation/templating (no template files)"
@@ -1237,51 +1175,6 @@ files = [
 
 [package.extras]
 test = ["Cython (>=0.29.24,<0.30.0)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "hypercorn"
-version = "0.14.4"
-description = "A ASGI Server based on Hyper libraries and inspired by Gunicorn"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "hypercorn-0.14.4-py3-none-any.whl", hash = "sha256:f956200dbf8677684e6e976219ffa6691d6cf795281184b41dbb0b135ab37b8d"},
-    {file = "hypercorn-0.14.4.tar.gz", hash = "sha256:3fa504efc46a271640023c9b88c3184fd64993f47a282e8ae1a13ccb285c2f67"},
-]
-
-[package.dependencies]
-h11 = "*"
-h2 = ">=3.1.0"
-priority = "*"
-tomli = {version = "*", markers = "python_version < \"3.11\""}
-wsproto = ">=0.14.0"
-
-[package.extras]
-docs = ["pydata_sphinx_theme"]
-h3 = ["aioquic (>=0.9.0,<1.0)"]
-trio = ["exceptiongroup (>=1.1.0)", "trio (>=0.22.0)"]
-uvloop = ["uvloop"]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "hyperframe"
-version = "6.0.1"
-description = "HTTP/2 framing layer for Python"
-optional = false
-python-versions = ">=3.6.1"
-files = [
-    {file = "hyperframe-6.0.1-py3-none-any.whl", hash = "sha256:0ec6bafd80d8ad2195c4f03aacba3a8265e57bc4cff261e802bf39970ed02a15"},
-    {file = "hyperframe-6.0.1.tar.gz", hash = "sha256:ae510046231dc8e9ecb1a6586f63d2347bf4c8905914aa84ba585ae85f28a914"},
-]
 
 [package.source]
 type = "legacy"
@@ -1759,25 +1652,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "outcome"
-version = "1.3.0.post0"
-description = "Capture the outcome of Python function calls."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "outcome-1.3.0.post0-py2.py3-none-any.whl", hash = "sha256:e771c5ce06d1415e356078d3bdd68523f284b4ce5419828922b6871e65eda82b"},
-    {file = "outcome-1.3.0.post0.tar.gz", hash = "sha256:9dcf02e65f2971b80047b377468e72a268e15c0af3cf1238e6ff14f7f91143b8"},
-]
-
-[package.dependencies]
-attrs = ">=19.2.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "packaging"
 version = "23.2"
 description = "Core utilities for Python packages"
@@ -1886,41 +1760,6 @@ identify = ">=1.0.0"
 nodeenv = ">=0.11.1"
 pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "priority"
-version = "2.0.0"
-description = "A pure-Python implementation of the HTTP/2 priority tree"
-optional = false
-python-versions = ">=3.6.1"
-files = [
-    {file = "priority-2.0.0-py3-none-any.whl", hash = "sha256:6f8eefce5f3ad59baf2c080a664037bb4725cd0a790d53d59ab4059288faf6aa"},
-    {file = "priority-2.0.0.tar.gz", hash = "sha256:c965d54f1b8d0d0b19479db3924c7c36cf672dbf2aec92d43fbdaf4492ba18c0"},
-]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "prometheus-client"
-version = "0.17.1"
-description = "Python client for the Prometheus monitoring system."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "prometheus_client-0.17.1-py3-none-any.whl", hash = "sha256:e537f37160f6807b8202a6fc4764cdd19bac5480ddd3e0d463c3002b34462101"},
-    {file = "prometheus_client-0.17.1.tar.gz", hash = "sha256:21e674f39831ae3f8acde238afd9a27a37d0d2fb5a28ea094f0ce25d2cbf2091"},
-]
-
-[package.extras]
-twisted = ["twisted"]
 
 [package.source]
 type = "legacy"
@@ -2532,29 +2371,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "sanic-pydantic"
-version = "1.3.1"
-description = "Sanic Pydatic"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "sanic-pydantic-1.3.1.tar.gz", hash = "sha256:ee6f8699faa805b735e4469dd7634111b4d34383ed7ce13cd984d4c9c12e0f9f"},
-]
-
-[package.dependencies]
-pydantic = "*"
-sanic = "*"
-
-[package.extras]
-dev = ["black", "coverage", "flake8", "ipdb", "pipenv", "pre-commit", "pytest"]
-docs = ["mkdocs", "mkdocs-material"]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "sanic-routing"
 version = "23.6.0"
 description = "Core routing component for Sanic"
@@ -2637,38 +2453,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "sniffio"
-version = "1.3.0"
-description = "Sniff out which async library your code is running under"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
-    {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
-]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "sortedcontainers"
-version = "2.4.0"
-description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
-optional = false
-python-versions = "*"
-files = [
-    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
-    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
-]
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -2743,31 +2527,6 @@ files = [
 
 [package.dependencies]
 html5tagger = ">=1.2.1"
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
-name = "trio"
-version = "0.23.1"
-description = "A friendly Python library for async concurrency and I/O"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "trio-0.23.1-py3-none-any.whl", hash = "sha256:bb4abb3f4af23f96679e7c8cdabb8b234520f2498550d2cf63ebfd95f2ce27fe"},
-    {file = "trio-0.23.1.tar.gz", hash = "sha256:16f89f7dcc8f7b9dcdec1fcd863e0c039af6d0f9a22f8dfd56f75d75ec73fd48"},
-]
-
-[package.dependencies]
-attrs = ">=20.1.0"
-cffi = {version = ">=1.14", markers = "os_name == \"nt\" and implementation_name != \"pypy\""}
-exceptiongroup = {version = ">=1.0.0rc9", markers = "python_version < \"3.11\""}
-idna = "*"
-outcome = "*"
-sniffio = ">=1.3.0"
-sortedcontainers = "*"
 
 [package.source]
 type = "legacy"
@@ -3133,25 +2892,6 @@ url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
 reference = "sjtu"
 
 [[package]]
-name = "wsproto"
-version = "1.2.0"
-description = "WebSockets state-machine based protocol implementation"
-optional = false
-python-versions = ">=3.7.0"
-files = [
-    {file = "wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736"},
-    {file = "wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065"},
-]
-
-[package.dependencies]
-h11 = ">=0.9.0,<1"
-
-[package.source]
-type = "legacy"
-url = "https://mirror.sjtu.edu.cn/pypi/web/simple"
-reference = "sjtu"
-
-[[package]]
 name = "yarl"
 version = "1.9.3"
 description = "Yet another URL library"
@@ -3262,4 +3002,4 @@ reference = "sjtu"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "db33a9751b0fd1f6c50b0a63404a04ce9491ba20e028f173939d8349102ddb69"
+content-hash = "7634699342379d680e8269a67acd90dfad97a0a6c24dd7e9862f2aa9cda2cc2c"
