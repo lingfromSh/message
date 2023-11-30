@@ -4,8 +4,8 @@ from datetime import datetime
 from aio_pika import DeliveryMode
 from aio_pika.message import Message
 
-from apps.message.subscriber import InQueueMessageHandlerMixin
 from apps.message.subscriber import InQueueBroadcastMessageTopicSubscriber
+from apps.message.subscriber import InQueueMessageHandlerMixin
 from apps.message.subscriber import InQueueSharedMessageTopicSubscriber
 
 

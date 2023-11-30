@@ -3,9 +3,9 @@ from asyncio.queues import Queue
 from asyncio.queues import QueueEmpty
 from contextlib import suppress
 from typing import Any
-from sanic.exceptions import WebsocketClosed
 
 import orjson
+from sanic.exceptions import WebsocketClosed
 from sanic.log import logger
 from ulid import ULID
 
@@ -119,7 +119,7 @@ class WebsocketPoolDependency:
                     await connection.send(data)
                 else:
                     await connection.send(orjson.dumps(data).decode())
-                logger.info(f"send message: {data} to connection: {connection._id}")
+                logger.debug(f"send message: {data} to connection: {connection._id}")
             except WebsocketClosed:
                 break
             except Exception as err:

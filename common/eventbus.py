@@ -7,7 +7,8 @@ from aio_pika.message import Message
 from pydantic import BaseModel
 from sanic import Sanic
 
-from common.command import TopicSubscriber
+from common.constants import TopicSubscriberType
+from common.pubsub import TopicSubscriber
 from utils import get_app
 
 __events__ = {}
@@ -79,7 +80,7 @@ def get_handlers(event_id: str) -> List[callable] | None:
 
 
 class EventBusTopicSubscriber(TopicSubscriber):
-    type = "shared"
+    type = TopicSubscriberType.SHARED
     topic = "eventbus"
     durable = False
     deadletter = False

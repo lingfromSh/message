@@ -2,8 +2,8 @@ import orjson
 from sanic import Sanic
 from sanic.log import logger
 
-from common.command import setup as setup_command
 from common.constants import EXECUTOR_NAME
+from common.pubsub import setup_topic_subscribers
 from configs import ConfigProxy
 from setup import setup_app
 
@@ -39,6 +39,4 @@ async def handle_websocket(request, ws):
 
 @app.before_server_start
 async def setup_command_subscribers(app):
-    queue = app.ctx.infra.queue()
-    async with queue.connection_pool.acquire() as connection:
-        await setup_command(app, connection)
+    await setup_topic_subscribers(app)

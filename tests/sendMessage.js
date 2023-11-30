@@ -5,11 +5,13 @@ import http from 'k6/http';
 export default function () {
 
     let data = {
-        "provider": "655ecfeff9d043dd4ea0b2a0",
+        "provider": "65674b3d76283f8b917bff96",
         "realm": {
-            "connections": ["01HFXCFEDEETWGVPAV5BD380J7", "01HFXCFD5HRC8QCX3B1EDH3C6K"],
+            "connections": ["01HGDSJXRXCGJTCDK5C70B718A", "01HGDSJRNSPXVQ9REYDQY001N2"],
             "action": "say.hello",
-            "payload": "hello, shiyun.ling"
+            "payload": {
+                "data": "shiyun"
+            }
         }
     }
 

@@ -12,11 +12,12 @@ if TYPE_CHECKING:
 from sanic.log import logger
 
 from apps.endpoint.models import Endpoint
-from common.command import TopicSubscriber
+from common.constants import TopicSubscriberType
+from common.pubsub import TopicSubscriber
 
 
 class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
-    type = "shared"
+    type = TopicSubscriberType.SHARED
     topic = "add.endpoint.websocket"
     deadletter = True
 
@@ -25,8 +26,6 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
         cls,
         app: Sanic,
         message: AbstractIncomingMessage,
-        semaphore: Semaphore = None,
-        context: dict = ...,
     ):
         cache = app.ctx.infra.cache()
         async with message.process(ignore_processed=True, requeue=True):
@@ -65,7 +64,7 @@ class AddEndpointWebsocketTopicSubscriber(TopicSubscriber):
 
 
 class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
-    type = "shared"
+    type = TopicSubscriberType.SHARED
     topic = "remove.endpoint.websocket"
     deadletter = True
 
@@ -74,8 +73,6 @@ class RemoveEndpointWebsocketTopicSubscriber(TopicSubscriber):
         cls,
         app: Sanic,
         message: AbstractIncomingMessage,
-        semaphore: Semaphore = None,
-        context: dict = ...,
     ):
         cache = app.ctx.infra.cache()
 

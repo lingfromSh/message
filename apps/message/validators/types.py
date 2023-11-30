@@ -1,11 +1,12 @@
-from typing import Annotated, Union
+from typing import Annotated
+from typing import Union
 
 from bson.objectid import ObjectId
 from pydantic import AfterValidator
 from pydantic import PlainSerializer
-from pydantic import WrapSerializer
 from pydantic import PlainValidator
 from pydantic import ValidationError
+from pydantic import WrapSerializer
 
 from apps.endpoint.validators.endpoint import ETag
 from apps.endpoint.validators.endpoint import ExID
