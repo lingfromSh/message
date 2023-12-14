@@ -11,32 +11,17 @@ A general message notification system
 
 ## Dependencies
 
-- MongoDB
+- PostgresQL
 - RabbitMQ
 - Redis
+- Prefect
 
 ## System Design
-![design](docs/design.svg)
 
-1. Server
-    recv message, publish message task
-2. Planner
-    schedule message tasks
-3. Executor
-    send messages and recv messages
+- FastAPI
 
 ## Development
 
 ```shell
 docker compose up
-```
-
-### Run server/executor/planner in message container
-```shell
-# start server
-make server 
-# start executor
-make executor
-# start planner
-make planner
 ```
