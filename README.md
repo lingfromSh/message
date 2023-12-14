@@ -23,5 +23,5 @@ A general message notification system
 ## Development
 
 ```shell
-docker compose up
+make dev
 ```

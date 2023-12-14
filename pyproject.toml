@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "message"
+version = "0.0.1"
+description = "a general message notification service"
+authors = ["Stephen Ling <lingfromsh@163.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<=3.13"
+fastapi = "^0.105.0"
+pydantic = "^2.5.2"
+dependency-injector = "^4.41.0"
+redis = "^5.0.1"
+prefect = "^2.14.10"
+strawberry-graphql = "^0.216.1"
+tortoise-orm = { extras = ["accel"], version = "^0.20.0" }
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

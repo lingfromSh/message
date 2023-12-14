@@ -1,0 +1,27 @@
+name: "message"
+version: "3.9"
+
+include:
+  - postgres/standalone/docker-compose.yaml
+  - rabbitmq/standalone/docker-compose.yaml
+  - redis/standalone/docker-compose.yaml
+
+services:
+  message:
+    container_name: message
+    build:
+      context: ../..
+      dockerfile: devops/build/dev.dockerfile
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - ../../src:/app
+    restart: always
+    tty: true
