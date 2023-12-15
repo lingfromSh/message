@@ -15,11 +15,30 @@ redis = "^5.0.1"
 prefect = "^2.14.10"
 strawberry-graphql = "^0.216.1"
 tortoise-orm = { extras = ["accel"], version = "^0.20.0" }
+uvicorn = "^0.24.0.post1"
+aiofile = "^3.8.8"
+trio = "^0.23.2"
+pydantic-settings = "^2.1.0"
+toml = "^0.10.2"
 
 [[tool.poetry.source]]
 name = "tsinghua"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 priority = "explicit"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+
+[tool.isort]
+profile = "black"
+src_paths = ["src"]
+force_single_line = true
+import_heading_future = "Future Library"
+import_heading_stdlib = "Standard Library"
+import_heading_firstparty = "First Library"
+import_heading_thirdparty = "Third Party Library"
+import_heading_localfolder = "Local Folder"
 
 [build-system]
 requires = ["poetry-core"]
