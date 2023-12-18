@@ -3,16 +3,22 @@ import typing
 from abc import ABCMeta
 
 # Third Party Library
+from dependency_injector.resources import AsyncResource
 from pydantic import BaseModel
 
 
+class CheckResult(BaseModel):
+    check: str
+    status: typing.Literal["up", "unsafe", "down"]
+    result: typing.Optional[str] = ""
+
+
 class HealthStatus(BaseModel):
-    is_ready: bool
     state: typing.Literal["recovering", "up", "down"]
-    reason: typing.Optional[str] = ""
+    checks: typing.List[CheckResult]
 
 
-class Infrastructure(metaclass=ABCMeta):
+class Infrastructure(AsyncResource, metaclass=ABCMeta):
     async def health_check(self) -> HealthStatus:
         """
         Health check for the infrastructure.

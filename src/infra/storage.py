@@ -10,6 +10,8 @@ from collections import OrderedDict
 import aiofiles
 
 # First Library
+from infra.abc import CheckResult
+from infra.abc import HealthStatus
 from infra.abc import Infrastructure
 
 
@@ -100,6 +102,12 @@ class Backend:
     def get_path(self, name: str) -> str:
         raise NotImplementedError
 
+    async def init(self):
+        raise NotImplementedError
+
+    async def shutdown(self, *args, **kwargs):
+        raise NotImplementedError
+
     async def get(self, name: str) -> bytes:
         raise NotImplementedError
 
@@ -123,6 +131,72 @@ class LocalFileSystemBackend(Backend, mode="local"):
 
     def get_size(self, name: str) -> int:
         return os.path.getsize(self._path(name))
+
+    async def init(self):
+        # do nothing
+        ...
+
+    async def shutdown(self, *args, **kwargs):
+        # do nothing
+        ...
+
+    async def health_check(self):
+        checks = []
+        if os.path.exists(self.root) and os.path.isdir(self.root):
+            checks.append(
+                CheckResult(
+                    check="filesystem path check",
+                    status="up",
+                    result="filesystem is accessable",
+                )
+            )
+        else:
+            checks.append(
+                CheckResult(
+                    check="filesystem path check",
+                    status="down",
+                    message="filesystem is not accessable",
+                )
+            )
+
+        if os.access(self.root, os.R_OK):
+            checks.append(
+                CheckResult(
+                    check="read access check",
+                    status="up",
+                    result="filesystem is readable",
+                )
+            )
+        else:
+            checks.append(
+                CheckResult(
+                    name="read access check",
+                    status="down",
+                    message="filesystem is not readable",
+                )
+            )
+
+        if os.access(self.root, os.W_OK):
+            checks.append(
+                CheckResult(
+                    check="write access check",
+                    status="up",
+                    result="filesystem is writable",
+                )
+            )
+        else:
+            checks.append(
+                CheckResult(
+                    name="write access check",
+                    status="down",
+                    message="filesystem is not writable",
+                )
+            )
+
+        return HealthStatus(
+            state="up" if all(lambda check: check.status == "up", checks) else "down",
+            checks=checks,
+        )
 
     async def get(self, name: str) -> typing.Optional[bytes]:
         content = None
@@ -162,9 +236,14 @@ class StorageInfrastructure(Infrastructure):
     >>> await local_storage.delete("test.txt")
     """
 
-    def __init__(self, mode: typing.Literal["local"], options: typing.Dict = None):
-        options = {} if options is None else options
-        self._backend: Backend = Backend.from_mode(mode, **options)
+    async def _get(self, name: str) -> StorageFile:
+        return await self._backend.get(name)
+
+    async def _write(self, name: str, content: bytes):
+        await self._backend.put(name, content)
+
+    async def health_check(self) -> HealthStatus:
+        return self._backend.health_check()
 
     def open(self, name: str) -> StorageFile:
         return StorageFile(name, storage=self)
@@ -175,11 +254,14 @@ class StorageInfrastructure(Infrastructure):
     def get_path(self, name: str) -> str:
         return self._backend.get_path(name)
 
-    async def _get(self, name: str) -> StorageFile:
-        return await self._backend.get(name)
-
-    async def _write(self, name: str, content: bytes):
-        await self._backend.put(name, content)
-
     async def delete(self, *names: typing.List[str]) -> None:
         await self._backend.delete(*names)
+
+    async def init(self, mode: typing.Literal["local"], options: typing.Dict = None):
+        options = {} if options is None else options
+        self._backend: Backend = Backend.from_mode(mode, **options)
+        await self._backend.init()
+        return self
+
+    async def shutdown(self, *args, **kwargs):
+        return await self._backend.shutdown()

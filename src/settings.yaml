@@ -1,3 +1,6 @@
+persistence:
+  dsn: postgres://pgadmin:pgpassword@localhost:5432/message
+
 storage:
   mode: local
   options:

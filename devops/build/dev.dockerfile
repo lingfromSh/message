@@ -14,3 +14,10 @@ EXPOSE 8000
 EXPOSE 8443
 
 WORKDIR /app
+
+COPY poetry.lock /app/poetry.lock
+COPY pyproject.toml /app/pyproject.toml
+
+RUN apt update -y && apt upgrade -y && apt install -y gcc
+RUN pip install --upgrade pip && pip install poetry
+RUN poetry install --quiet
