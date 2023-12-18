@@ -9,12 +9,12 @@ from pydantic import BaseModel
 
 class CheckResult(BaseModel):
     check: str
-    status: typing.Literal["up", "unsafe", "down"]
+    status: typing.Literal["up", "down"]
     result: typing.Optional[str] = ""
 
 
 class HealthStatus(BaseModel):
-    state: typing.Literal["recovering", "up", "down"]
+    status: typing.Literal["up", "down"]
     checks: typing.List[CheckResult]
 
 
@@ -25,13 +25,13 @@ class Infrastructure(AsyncResource, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    async def init(self):
+    async def init(self) -> "Infrastructure":
         """
         Initialize the infrastructure.
         """
         raise NotImplementedError
 
-    async def shutdown(self):
+    async def shutdown(self, resource: "Infrastructure"):
         """
         Shutdown the infrastructure.
         """

@@ -140,7 +140,7 @@ class LocalFileSystemBackend(Backend, mode="local"):
         # do nothing
         ...
 
-    async def health_check(self):
+    async def health_check(self) -> HealthStatus:
         checks = []
         if os.path.exists(self.root) and os.path.isdir(self.root):
             checks.append(
@@ -194,7 +194,9 @@ class LocalFileSystemBackend(Backend, mode="local"):
             )
 
         return HealthStatus(
-            state="up" if all(lambda check: check.status == "up", checks) else "down",
+            status="up"
+            if all(map(lambda check: check.status == "up", checks))
+            else "down",
             checks=checks,
         )
 
@@ -243,7 +245,7 @@ class StorageInfrastructure(Infrastructure):
         await self._backend.put(name, content)
 
     async def health_check(self) -> HealthStatus:
-        return self._backend.health_check()
+        return await self._backend.health_check()
 
     def open(self, name: str) -> StorageFile:
         return StorageFile(name, storage=self)
@@ -257,11 +259,13 @@ class StorageInfrastructure(Infrastructure):
     async def delete(self, *names: typing.List[str]) -> None:
         await self._backend.delete(*names)
 
-    async def init(self, mode: typing.Literal["local"], options: typing.Dict = None):
+    async def init(
+        self, mode: typing.Literal["local"], options: typing.Dict = None
+    ) -> "StorageInfrastructure":
         options = {} if options is None else options
         self._backend: Backend = Backend.from_mode(mode, **options)
         await self._backend.init()
         return self
 
-    async def shutdown(self, *args, **kwargs):
+    async def shutdown(self, resource: "StorageInfrastructure"):
         return await self._backend.shutdown()

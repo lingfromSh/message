@@ -2,10 +2,25 @@
 from tortoise import Tortoise
 
 # First Library
+from infra.abc import CheckResult
+from infra.abc import HealthStatus
 from infra.abc import Infrastructure
 
 
 class PersistenceInfrastructure(Infrastructure):
+    async def health_check(self) -> HealthStatus:
+        if Tortoise._inited:
+            return HealthStatus(
+                status="up",
+                checks=[CheckResult(check="init check", status="up", result="inited")],
+            )
+        return HealthStatus(
+            status="down",
+            checks=[
+                CheckResult(check="init check", status="down", result="failed to init")
+            ],
+        )
+
     async def init(self, dsn: str):
         await Tortoise.init(
             config={
@@ -19,6 +34,7 @@ class PersistenceInfrastructure(Infrastructure):
             },
             use_tz=True,
         )
+        return self
 
-    async def shutdown(self, _: None):
+    async def shutdown(self, resource: "PersistenceInfrastructure"):
         await Tortoise.close_connections()

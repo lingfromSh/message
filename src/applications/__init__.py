@@ -1,2 +1,2 @@
 # Local Folder
-from .end_user import EndUserApplication
+from .health import HealthApplication
