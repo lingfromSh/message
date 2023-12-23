@@ -28,7 +28,7 @@ class InfrastructureContainer(DeclarativeContainer):
     )
 
 
-async def initialize_infra() -> InfrastructureContainer:
+async def initialize_infra(app) -> InfrastructureContainer:
     global __infra__
     __infra__ = InfrastructureContainer()
     __infra__.config.from_yaml(SETTINGS_YAML)
@@ -36,7 +36,7 @@ async def initialize_infra() -> InfrastructureContainer:
     return __infra__
 
 
-async def shutdown_infra() -> None:
+async def shutdown_infra(app) -> None:
     global __infra__
     await asyncio.shield(__infra__.shutdown_resources())
     __infra__ = None

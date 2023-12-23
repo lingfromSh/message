@@ -1,19 +1,21 @@
 # Third Party Library
+from pydantic import ConfigDict
 from tortoise import Model
 from tortoise import fields
 from tortoise.manager import Manager
 from tortoise.queryset import QuerySet
+from tortoise.timezone import now
 
 # First Library
 from common.fields import ULIDField
 
 __all__ = [
-    "BaseManager",
+    "ActiveObjectsManager",
     "BaseModel",
 ]
 
 
-class BaseManager(Manager):
+class ActiveObjectsManager(Manager):
     def get_queryset(self) -> QuerySet:
         return super().get_queryset().filter(is_deleted=False, deleted_at__isnull=True)
 
@@ -25,6 +27,11 @@ class BaseModel(Model):
     is_deleted = fields.BooleanField(default=False)
     deleted_at = fields.DatetimeField(null=True)
 
+    active_objects = ActiveObjectsManager()
+
     class Meta:
         abstract = True
-        manager = BaseManager()
+
+    class PydanticMeta:
+        exclude = ("is_deleted", "deleted_at")
+        model_config = ConfigDict(arbitrary_types_allowed=True)

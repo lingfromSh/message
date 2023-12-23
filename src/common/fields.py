@@ -41,4 +41,4 @@ class ULIDField(Field[ULID], ULID):
     def to_python_value(self, value: Any) -> Optional[ULID]:
         if value is None or isinstance(value, ULID):
             return value
-        return ULID(value)
+        return ULID.from_str(value)

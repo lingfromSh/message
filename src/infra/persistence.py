@@ -34,6 +34,7 @@ class PersistenceInfrastructure(Infrastructure):
             },
             use_tz=True,
         )
+        await Tortoise.generate_schemas()
         return self
 
     async def shutdown(self, resource: "PersistenceInfrastructure"):

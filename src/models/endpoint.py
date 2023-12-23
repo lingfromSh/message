@@ -6,8 +6,8 @@ from common.models import BaseModel
 
 
 class Endpoint(BaseModel):
-    end_user = fields.ForeignKeyField(
-        "models.EndUser",
+    user = fields.ForeignKeyField(
+        "models.User",
         on_delete=fields.CASCADE,
     )
     contact = fields.ForeignKeyField(
