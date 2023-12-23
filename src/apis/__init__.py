@@ -7,6 +7,8 @@ from strawberry import relay
 from strawberry.schema.config import StrawberryConfig
 
 # Local Folder
+from .contact import Mutation as ContactMutation
+from .contact import Query as ContactQuery
 from .health import Query as HealthQuery
 from .health import Subscription as HealthSubscription
 from .user import Mutation as UserMutation
@@ -14,18 +16,18 @@ from .user import Query as UserQuery
 
 
 @strawberry.type
-class Query(UserQuery, HealthQuery):
+class Query(ContactQuery, UserQuery, HealthQuery):
     node: relay.Node = relay.node()
 
 
 @strawberry.type
-class Mutation(UserMutation):
-    pass
+class Mutation(ContactMutation, UserMutation):
+    ...
 
 
 @strawberry.type
 class Subscription(HealthSubscription):
-    pass
+    ...
 
 
 @dataclass

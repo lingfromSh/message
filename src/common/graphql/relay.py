@@ -69,7 +69,7 @@ class TortoiseORMModelNodeMetaclass(type):
         tortoise_model = options.model
 
         # make new name
-        name = "{model_name}TortoiseNode".format(model_name="User")
+        name = "{model_name}TortoiseNode".format(model_name=tortoise_model.__name__)
         # make new bases
         pydantic_model = pydantic_model_creator(tortoise_model)
         pydantic_queryset_model = pydantic_queryset_creator(tortoise_model)
@@ -84,7 +84,6 @@ class TortoiseORMModelNodeMetaclass(type):
         attrs["__pydantic_queryset_model__"] = pydantic_queryset_model
         attrs["__annotations__"] = pure_python_type.__annotations__
         attrs["__annotations__"]["id"] = NodeID[ULID]
-
         subcls = super().__new__(cls, name, bases, attrs)
         return strawberry.type(description="An relay node for tortoise orm model")(
             subcls

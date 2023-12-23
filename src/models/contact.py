@@ -2,10 +2,11 @@
 from tortoise import fields
 
 # First Library
+import mixins
 from common.models import BaseModel
 
 
-class Contact(BaseModel):
+class Contact(mixins.ContactMixin, BaseModel):
     """
     contact is a method of notification.
 

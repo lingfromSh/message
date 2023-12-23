@@ -51,6 +51,10 @@ class UserMixin:
     def repository(self) -> Model:
         return self.__class__
 
+    @property
+    def db(self):
+        return self.repository.select_for_update().filter(id=self.id)
+
     @atomic
     async def activate(self, save: bool = True):
         """
