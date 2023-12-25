@@ -9,6 +9,7 @@ from strawberry import relay
 # First Library
 import applications
 from common.graphql.relay import TortoiseORMPaginationConnection
+from common.graphql.relay import connection
 
 # Local Folder
 from .objecttypes import ContactDefinitionStrawberryType
@@ -17,16 +18,12 @@ from .objecttypes import ContactTortoiseORMNode
 
 @strawberry.type(description="Contact API")
 class Query:
-    @relay.connection(TortoiseORMPaginationConnection[ContactTortoiseORMNode])
+    @connection(TortoiseORMPaginationConnection[ContactTortoiseORMNode])
     async def contacts(
         self,
         ids: typing.Optional[typing.List[relay.GlobalID]] = None,
         name: typing.Optional[typing.List[str]] = None,
         code: typing.Optional[typing.List[str]] = None,
-        created_at_before: typing.Optional[datetime] = None,
-        created_at_after: typing.Optional[datetime] = None,
-        updated_at_before: typing.Optional[datetime] = None,
-        updated_at_after: typing.Optional[datetime] = None,
     ) -> typing.AsyncIterable[ContactTortoiseORMNode]:
         application = applications.ContactApplication()
         conditions = {}
@@ -36,15 +33,8 @@ class Query:
             conditions["name__contains"] = name
         if code is not None:
             conditions["code__contains"] = code
-        if created_at_before is not None:
-            conditions["created_at__lt"] = created_at_before
-        if created_at_after is not None:
-            conditions["created_at__gt"] = created_at_after
-        if updated_at_before is not None:
-            conditions["updated_at__lt"] = updated_at_before
-        if updated_at_after is not None:
-            conditions["updated_at__gt"] = updated_at_after
-        return application.get_contacts(conditions=conditions)
+
+        return await application.get_contacts(conditions=conditions)
 
 
 @strawberry.type(description="Contact API")

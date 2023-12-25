@@ -1,6 +1,5 @@
 # Standard Library
 import typing
-from datetime import datetime
 
 # Third Party Library
 import strawberry
@@ -9,6 +8,7 @@ from strawberry import relay
 # First Library
 import applications
 from common.graphql.relay import TortoiseORMPaginationConnection
+from common.graphql.relay import connection
 
 # Local Folder
 from .obecttypes import UserTortoiseORMNode
@@ -21,15 +21,11 @@ class Query:
         application = applications.UserApplication()
         return await application.get_user_by_external_id(external_id)
 
-    @relay.connection(TortoiseORMPaginationConnection[UserTortoiseORMNode])
+    @connection(TortoiseORMPaginationConnection[UserTortoiseORMNode])
     async def users(
         self,
         ids: typing.Optional[typing.List[relay.GlobalID]] = None,
         external_ids: typing.Optional[typing.List[str]] = None,
-        created_at_before: typing.Optional[datetime] = None,
-        created_at_after: typing.Optional[datetime] = None,
-        updated_at_before: typing.Optional[datetime] = None,
-        updated_at_after: typing.Optional[datetime] = None,
         is_active: typing.Optional[bool] = None,
     ) -> typing.AsyncIterable[UserTortoiseORMNode]:
         application = applications.UserApplication()
@@ -38,18 +34,11 @@ class Query:
             conditions["id__in"] = [id.node_id for id in ids]
         if external_ids is not None:
             conditions["external_id__in"] = external_ids
-        if created_at_before is not None:
-            conditions["created_at__lt"] = created_at_before
-        if created_at_after is not None:
-            conditions["created_at__gt"] = created_at_after
-        if updated_at_before is not None:
-            conditions["updated_at__lt"] = updated_at_before
-        if updated_at_after is not None:
-            conditions["updated_at__gt"] = updated_at_after
+
         if is_active is not None:
             conditions["is_active"] = is_active
 
-        return application.get_users(conditions=conditions)
+        return await application.get_users(conditions=conditions)
 
 
 @strawberry.type(description="User API")
@@ -62,7 +51,10 @@ class Mutation:
         endpoints: typing.Optional[typing.List[strawberry.scalars.JSON]] = None,
     ) -> UserTortoiseORMNode:
         application = applications.UserApplication()
-        return await application.create_user(external_id=external_id, metadata=metadata)
+        created = await application.create_user(
+            external_id=external_id, metadata=metadata
+        )
+        return UserTortoiseORMNode.resolve_orm(created)
 
     @strawberry.mutation(description="Update user")
     async def user_update(

@@ -19,7 +19,7 @@ class UserApplication(ApplicationBase[models.User]):
     def __init__(self, repository: typing.Type[models.User] = models.User):
         self.repository: typing.Type[models.User] = repository
 
-    def get_users(
+    async def get_users(
         self,
         conditions: typing.Dict = None,
         *,

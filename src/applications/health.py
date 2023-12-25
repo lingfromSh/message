@@ -9,6 +9,8 @@ from infra.abc import HealthStatus
 class ServiceHealthStatus(BaseModel):
     persistence: HealthStatus
     storage: HealthStatus
+    websocket: HealthStatus
+    background: HealthStatus
 
 
 class HealthApplication:
@@ -16,6 +18,8 @@ class HealthApplication:
         return ServiceHealthStatus(
             persistence=await self.get_persistence_health(),
             storage=await self.get_storage_health(),
+            websocket=await self.get_websocket_health(),
+            background=await self.get_background_health(),
         )
 
     async def get_persistence_health(self) -> HealthStatus:
@@ -29,3 +33,15 @@ class HealthApplication:
 
         storage = await infra.storage()
         return await storage.health_check()
+
+    async def get_websocket_health(self) -> HealthStatus:
+        infra = get_infra()
+
+        websocket = await infra.websocket()
+        return await websocket.health_check()
+
+    async def get_background_health(self) -> HealthStatus:
+        infra = get_infra()
+
+        background = await infra.background_scheduler()
+        return await background.health_check()

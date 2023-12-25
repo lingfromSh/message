@@ -13,7 +13,7 @@ from .base import ApplicationBase
 
 
 class EndpointApplication(ApplicationBase[models.Endpoint]):
-    def get_endpoints(
+    async def get_endpoints(
         self,
         conditions: typing.Dict = None,
         *,
@@ -22,7 +22,7 @@ class EndpointApplication(ApplicationBase[models.Endpoint]):
         order_by: typing.List[str] = None,
         for_update: bool = False,
     ) -> QuerySet[models.Endpoint]:
-        return self.get_objs(
+        return await self.get_objs(
             conditions,
             offset=offset,
             limit=limit,

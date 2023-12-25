@@ -28,3 +28,5 @@ class StrawberryHealthStatus:
 class StrawberryServiceHealthStatus:
     persistence: StrawberryHealthStatus
     storage: StrawberryHealthStatus
+    websocket: StrawberryHealthStatus
+    background: StrawberryHealthStatus

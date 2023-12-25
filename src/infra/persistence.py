@@ -21,7 +21,7 @@ class PersistenceInfrastructure(Infrastructure):
                 ],
             )
         try:
-            await Tortoise.get_connection().execute_query("")
+            await Tortoise.get_connection("default").execute_query("")
             return HealthStatus(
                 status="up",
                 checks=[
@@ -32,7 +32,7 @@ class PersistenceInfrastructure(Infrastructure):
                     )
                 ],
             )
-        except Exception:
+        except BaseException as e:
             return HealthStatus(
                 status="down",
                 checks=[

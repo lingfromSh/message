@@ -13,17 +13,34 @@ from .endpoint import Mutation as EndpointMutation
 from .endpoint import Query as EndpointQuery
 from .health import Query as HealthQuery
 from .health import Subscription as HealthSubscription
+from .message import Mutation as MessageMutation
+from .message import Query as MessageQuery
+from .provider import Mutation as ProviderMutation
+from .provider import Query as ProviderQuery
 from .user import Mutation as UserMutation
 from .user import Query as UserQuery
 
 
 @strawberry.type
-class Query(ContactQuery, EndpointQuery, HealthQuery, UserQuery):
+class Query(
+    ContactQuery,
+    EndpointQuery,
+    HealthQuery,
+    MessageQuery,
+    ProviderQuery,
+    UserQuery,
+):
     node: relay.Node = relay.node()
 
 
 @strawberry.type
-class Mutation(ContactMutation, EndpointMutation, UserMutation):
+class Mutation(
+    ContactMutation,
+    EndpointMutation,
+    MessageMutation,
+    ProviderMutation,
+    UserMutation,
+):
     ...
 
 

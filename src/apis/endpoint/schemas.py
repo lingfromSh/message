@@ -8,6 +8,7 @@ from strawberry import relay
 # First Library
 import applications
 from common.graphql.relay import TortoiseORMPaginationConnection
+from common.graphql.relay import TortoiseORMPaginationConnectionExtension
 
 # Local Folder
 from .objecttypes import EndpointTortoiseORMNode
@@ -15,7 +16,10 @@ from .objecttypes import EndpointTortoiseORMNode
 
 @strawberry.type(description="Endpoint API")
 class Query:
-    @relay.connection(TortoiseORMPaginationConnection[EndpointTortoiseORMNode])
+    @relay.connection(
+        TortoiseORMPaginationConnection[EndpointTortoiseORMNode],
+        extensions=[TortoiseORMPaginationConnectionExtension()],
+    )
     async def endpoints(
         self,
         ids: typing.Optional[typing.List[relay.GlobalID]] = None,
@@ -30,7 +34,7 @@ class Query:
             conditions["user_id__in"] = [id.node_id for id in user_ids]
         if contact_ids:
             conditions["contact_id__in"] = [id.node_id for id in contact_ids]
-        return application.get_endpoints(conditions)
+        return await application.get_endpoints(conditions)
 
 
 @strawberry.type(description="Endpoint API")

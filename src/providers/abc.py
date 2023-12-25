@@ -8,6 +8,8 @@ from pydantic import BaseModel
 # First Library
 import exceptions
 
+__registry__ = {}
+
 
 class ProviderBase(metaclass=ABCMeta):
     # basic info
@@ -25,13 +27,17 @@ class ProviderBase(metaclass=ABCMeta):
 
     # TODO: subscribers: typing.Any
 
-    def __init__(self, infra, parameters: parameter_definition):
+    def __init__(self, infra, parameters: "parameter_definition"):
         self.infra = infra
         self.parameters = parameters
 
+    def __init_subclass__(cls) -> None:
+        global __registry__
+        __registry__.update({cls.name: cls})
+
     async def _send(
         self,
-        message: message_definition,
+        message: "message_definition",
         *,
         users: typing.List[typing.Any] = None,
         endpoints: typing.List[typing.Any] = None,
@@ -60,7 +66,7 @@ class ProviderBase(metaclass=ABCMeta):
     def validate_parameters(
         self,
         parameters: typing.Dict,
-    ) -> parameter_definition:
+    ) -> "parameter_definition":
         """
         Parameters validation.
         """
@@ -71,7 +77,7 @@ class ProviderBase(metaclass=ABCMeta):
     def validate_message(
         self,
         message: typing.Any,
-    ) -> message_definition:
+    ) -> "message_definition":
         """
         Message validation.
         """
@@ -81,7 +87,7 @@ class ProviderBase(metaclass=ABCMeta):
 
     async def send(
         self,
-        message: message_definition,
+        message: "message_definition",
         *,
         users: typing.List[typing.Any] = None,
         endpoints: typing.List[typing.Any] = None,

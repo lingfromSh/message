@@ -20,7 +20,7 @@ class ContactApplication:
         self.repository = repository
 
     @ensure_infra("persistence")
-    def get_contacts(
+    async def get_contacts(
         self,
         conditions: typing.Dict = None,
         *,

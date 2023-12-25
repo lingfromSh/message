@@ -1,7 +1,10 @@
 # Standard Library
+import gc
 from contextlib import asynccontextmanager
 
 # Third Party Library
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from strawberry.fastapi.router import GraphQLRouter
 from tortoise.transactions import in_transaction
@@ -28,7 +31,7 @@ async def initialize_fixtures(app: FastAPI):
     """
     # First Library
     import contacts
-    from applications.contact import ContactApplication
+    from applications import ContactApplication
     from models.contact import Contact
 
     application = ContactApplication()
@@ -63,6 +66,7 @@ async def lifespan(app: FastAPI):
     await initialize_graphql_api(app)
     # initialize fixtures
     await initialize_fixtures(app)
+
     yield
 
     # shutdown infrastructure container

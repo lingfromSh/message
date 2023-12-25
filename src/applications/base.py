@@ -23,7 +23,7 @@ class ApplicationBase(typing.Generic[T]):
         ApplicationBase.__registry__[clsname] = cls
         return cls
 
-    def get_objs(
+    async def get_objs(
         self,
         conditions: typing.Dict = None,
         *,
