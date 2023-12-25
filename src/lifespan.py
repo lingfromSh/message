@@ -8,6 +8,7 @@ from tortoise.transactions import in_transaction
 
 # First Library
 from apis import schema
+from helpers.decorators import ensure_infra
 from infra import initialize_infra
 from infra import shutdown_infra
 
@@ -20,12 +21,13 @@ async def initialize_graphql_api(app: FastAPI):
     app.include_router(graphql_router, prefix="/graphql", tags=["graphql"])
 
 
+@ensure_infra("persistence", raise_exceptions=False)
 async def initialize_fixtures(app: FastAPI):
     """
     initialize fixtures
     """
     # First Library
-    import plugins
+    import contacts
     from applications.contact import ContactApplication
     from models.contact import Contact
 

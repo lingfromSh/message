@@ -9,6 +9,8 @@ from strawberry.schema.config import StrawberryConfig
 # Local Folder
 from .contact import Mutation as ContactMutation
 from .contact import Query as ContactQuery
+from .endpoint import Mutation as EndpointMutation
+from .endpoint import Query as EndpointQuery
 from .health import Query as HealthQuery
 from .health import Subscription as HealthSubscription
 from .user import Mutation as UserMutation
@@ -16,12 +18,12 @@ from .user import Query as UserQuery
 
 
 @strawberry.type
-class Query(ContactQuery, UserQuery, HealthQuery):
+class Query(ContactQuery, EndpointQuery, HealthQuery, UserQuery):
     node: relay.Node = relay.node()
 
 
 @strawberry.type
-class Mutation(ContactMutation, UserMutation):
+class Mutation(ContactMutation, EndpointMutation, UserMutation):
     ...
 
 

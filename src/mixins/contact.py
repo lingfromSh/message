@@ -14,6 +14,7 @@ from ulid import ULID
 
 # First Library
 import exceptions
+from common.constants import ContactEnum
 
 ValidateResult = namedtuple("ValidateResult", ["valid", "validated_data"])
 
@@ -94,14 +95,21 @@ class ContactMixin:
         return cls._contact_pydantic_models_
 
     @classmethod
-    def get_schema(cls, code: str) -> typing.Optional[BaseModel]:
-        return cls._contact_pydantic_models_.get(code)
+    def get_schema(
+        cls,
+        code: typing.Union[str, ContactEnum],
+    ) -> typing.Optional[BaseModel]:
+        try:
+            code = ContactEnum(code)
+            return cls._contact_pydantic_models_.get(code.value)
+        except Exception:
+            return
 
     @classmethod
-    def register_schema(cls, code: str, schema: BaseModel):
+    def register_schema(cls, code: ContactEnum, schema: BaseModel):
         if code in cls._contact_pydantic_models_:
             raise exceptions.ContactSchemaAlreadyRegisteredError
-        cls._contact_pydantic_models_[code] = schema
+        cls._contact_pydantic_models_[code.value] = schema
 
     @property
     def repository(self) -> Model:
@@ -112,7 +120,7 @@ class ContactMixin:
         return self.repository.select_for_update().filter(id=self.id)
 
     @property
-    def schema(self) -> ContactDefinitionModel:
+    def contact_schema(self) -> ContactDefinitionModel:
         return ContactDefinitionModel.model_validate(self.deifnition)
 
     @atomic

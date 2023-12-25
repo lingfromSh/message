@@ -2,10 +2,11 @@
 from tortoise import fields
 
 # First Library
+import mixins
 from common.models import BaseModel
 
 
-class Endpoint(BaseModel):
+class Endpoint(mixins.EndpointMixin, BaseModel):
     user = fields.ForeignKeyField(
         "models.User",
         on_delete=fields.CASCADE,

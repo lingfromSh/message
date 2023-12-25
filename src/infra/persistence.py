@@ -9,33 +9,62 @@ from infra.abc import Infrastructure
 
 class PersistenceInfrastructure(Infrastructure):
     async def health_check(self) -> HealthStatus:
-        if Tortoise._inited:
+        if not Tortoise._inited:
+            return HealthStatus(
+                status="down",
+                checks=[
+                    CheckResult(
+                        check="init check",
+                        status="down",
+                        result="failed to init",
+                    )
+                ],
+            )
+        try:
+            await Tortoise.get_connection().execute_query("")
             return HealthStatus(
                 status="up",
-                checks=[CheckResult(check="init check", status="up", result="inited")],
+                checks=[
+                    CheckResult(
+                        check="init check",
+                        status="up",
+                        result="inited",
+                    )
+                ],
             )
-        return HealthStatus(
-            status="down",
-            checks=[
-                CheckResult(check="init check", status="down", result="failed to init")
-            ],
-        )
+        except Exception:
+            return HealthStatus(
+                status="down",
+                checks=[
+                    CheckResult(
+                        check="init check",
+                        status="down",
+                        result="failed to connect",
+                    )
+                ],
+            )
 
     async def init(self, dsn: str):
-        await Tortoise.init(
-            config={
-                "connections": {"default": dsn},
-                "apps": {
-                    "models": {
-                        "models": ["models"],
-                        "default_connection": "default",
-                    }
+        try:
+            await Tortoise.init(
+                config={
+                    "connections": {"default": dsn},
+                    "apps": {
+                        "models": {
+                            "models": ["models"],
+                            "default_connection": "default",
+                        }
+                    },
                 },
-            },
-            use_tz=True,
-        )
-        await Tortoise.generate_schemas()
+                use_tz=True,
+            )
+            await Tortoise.generate_schemas()
+        except BaseException:
+            return self
         return self
 
     async def shutdown(self, resource: "PersistenceInfrastructure"):
-        await Tortoise.close_connections()
+        try:
+            await Tortoise.close_connections()
+        except BaseException:
+            pass

@@ -11,8 +11,11 @@ from ulid import ULID
 import exceptions
 import models
 
+# Local Folder
+from .base import ApplicationBase
 
-class UserApplication:
+
+class UserApplication(ApplicationBase[models.User]):
     def __init__(self, repository: typing.Type[models.User] = models.User):
         self.repository: typing.Type[models.User] = repository
 
@@ -36,8 +39,8 @@ class UserApplication:
             qs = qs.select_for_update()
         return qs
 
-    async def get_user(self, user_id: ULID) -> typing.Optional[models.User]:
-        return await self.repository.from_id(id=user_id)
+    async def get_user(self, id: ULID) -> typing.Optional[models.User]:
+        return await self.repository.from_id(id=id)
 
     async def get_user_by_external_id(
         self, external_id: str

@@ -3,17 +3,16 @@ import typing
 
 # Third Party Library
 from pydantic import BaseModel
-from pydantic import EmailStr
-from pydantic import NameEmail
 
 # First Library
+from common.constants import ContactEnum
 from helpers.decorators import contact_schema
 
 
-@contact_schema("email")
+@contact_schema(ContactEnum.WEBSOCKET)
 class Schema(BaseModel):
     """
-    Email schema
+    Websocket schema
     """
 
-    email: typing.Union[EmailStr, NameEmail]
+    connection_id: str

@@ -10,6 +10,7 @@ from ulid import ULID
 # First Library
 import exceptions
 import models
+from helpers.decorators import ensure_infra
 
 
 class ContactApplication:
@@ -18,6 +19,7 @@ class ContactApplication:
     ) -> None:
         self.repository = repository
 
+    @ensure_infra("persistence")
     def get_contacts(
         self,
         conditions: typing.Dict = None,
@@ -38,12 +40,15 @@ class ContactApplication:
             qs = qs.select_for_update()
         return qs
 
+    @ensure_infra("persistence")
     async def get_contact(self, contact_id: ULID) -> typing.Optional[models.Contact]:
         return await self.repository.from_id(id=contact_id)
 
+    @ensure_infra("persistence")
     async def get_contact_by_code(self, code: str) -> typing.Optional[models.Contact]:
         return await self.repository.from_code(code=code)
 
+    @ensure_infra("persistence")
     async def create_contact(
         self,
         name: str,
@@ -61,6 +66,7 @@ class ContactApplication:
             description=description,
         )
 
+    @ensure_infra("persistence")
     async def update_contact(
         self,
         contact: models.Contact,
@@ -80,6 +86,7 @@ class ContactApplication:
         await contact.save(update_fields=["name", "code", "description", "definition"])
         return contact
 
+    @ensure_infra("persistence")
     async def destroy_contacts(
         self, *ids: typing.List[ULID]
     ) -> typing.Literal["ok", "error"]:
@@ -91,6 +98,7 @@ class ContactApplication:
                 return "ok"
         return "error"
 
+    @ensure_infra("persistence")
     async def update_contacts(
         self,
         contacts: typing.List[models.Contact],
