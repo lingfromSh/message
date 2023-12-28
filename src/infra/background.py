@@ -32,15 +32,11 @@ class BackgroundSchedulerInfrastructure(Infrastructure):
                 ],
             )
 
-    async def init(self, dsn):
+    async def init(self):
         try:
             self.background_scheduler = AsyncIOScheduler()
-            self.background_scheduler.add_job(
-                gc.collect, trigger=IntervalTrigger(minutes=15)
-            )
             self.background_scheduler.start()
-        except Exception as e:
-            print(e)
+        except Exception:
             pass
         return self
 

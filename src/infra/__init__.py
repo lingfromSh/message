@@ -33,10 +33,7 @@ class InfrastructureContainer(DeclarativeContainer):
 
     websocket = providers.Resource(WebsocketInfrastructure)
 
-    background_scheduler = providers.Resource(
-        BackgroundSchedulerInfrastructure,
-        dsn=config.persistence.dsn,
-    )
+    background_scheduler = providers.Resource(BackgroundSchedulerInfrastructure)
 
 
 async def initialize_infra(app) -> InfrastructureContainer:
