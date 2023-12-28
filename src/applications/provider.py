@@ -1,9 +1,9 @@
 # Standard Library
 import typing
-from typing import List
 
 # Third Party Library
 from tortoise.queryset import QuerySet
+from tortoise.transactions import atomic
 from ulid import ULID
 
 # First Library
@@ -37,8 +37,10 @@ class ProviderApplication(ApplicationBase[models.Provider]):
     async def get_provider(self, id: ULID) -> models.Provider:
         return await self.repository.from_id(id=id)
 
+    @atomic("default")
     async def create_provider(
         self,
+        *,
         name: str,
         code: str,
         description: typing.Optional[str] = None,
@@ -50,3 +52,32 @@ class ProviderApplication(ApplicationBase[models.Provider]):
             description=description,
             params=params,
         )
+
+    @atomic("default")
+    async def update_provider(
+        self,
+        provider: models.Provider,
+        *,
+        name: typing.Optional[str] = None,
+        code: typing.Optional[str] = None,
+        description: typing.Optional[str] = None,
+        params: typing.Optional[typing.Any] = None,
+    ):
+        if name is not None:
+            await provider.set_name(name, save=False)
+        if code is not None:
+            await provider.set_code(code, save=False)
+        if description is not None:
+            await provider.set_description(description, save=False)
+        if params is not None:
+            await provider.set_params(params, save=False)
+        await provider.save(
+            update_fields=[
+                "name",
+                "code",
+                "description",
+                "params",
+                "updated_at",
+            ]
+        )
+        return provider

@@ -63,15 +63,16 @@ class ProviderBase(metaclass=ABCMeta):
             await self.recv()
         raise exceptions.ProviderRecvNotSupportError
 
+    @classmethod
     def validate_parameters(
-        self,
+        cls,
         parameters: typing.Dict,
     ) -> "parameter_definition":
         """
         Parameters validation.
         """
-        if self.parameter_definition:
-            return self.parameter_definition.model_validate(parameters)
+        if cls.parameter_definition:
+            return cls.parameter_definition.model_validate(parameters)
         return None
 
     def validate_message(

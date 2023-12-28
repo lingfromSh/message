@@ -45,7 +45,32 @@ class Mutation:
         params: typing.Optional[strawberry.scalars.JSON] = None,
     ) -> ProviderTortoiseORMNode:
         application = applications.ProviderApplication()
-        provider = await application.create_provider(name, code, description, params)
+        provider = await application.create_provider(
+            name=name,
+            code=code,
+            description=description,
+            params=params,
+        )
+        return await ProviderTortoiseORMNode.resolve_orm(provider)
+
+    @strawberry.mutation(description="Update provider")
+    async def provider_update(
+        self,
+        id: relay.GlobalID,
+        code: typing.Optional[str] = None,
+        name: typing.Optional[str] = None,
+        description: typing.Optional[str] = None,
+        params: typing.Optional[strawberry.scalars.JSON] = None,
+    ) -> ProviderTortoiseORMNode:
+        application = applications.ProviderApplication()
+        provider = await application.get_provider(id=id.node_id)
+        await application.update_provider(
+            provider,
+            name=name,
+            code=code,
+            description=description,
+            params=params,
+        )
         return await ProviderTortoiseORMNode.resolve_orm(provider)
 
     @strawberry.mutation(description="Destory providers")

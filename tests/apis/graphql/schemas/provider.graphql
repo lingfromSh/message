@@ -1,0 +1,54 @@
+fragment ProviderNode on ProviderTortoiseNode {
+  id
+  name
+  code
+  description
+  params
+  createdAt
+  updatedAt
+}
+
+query Providers($ids: [GlobalID!], $name: String, $code: String, $createdAtBefore: DateTime, $createdAtAfter: DateTime, $updatedAtBefore: DateTime, $updatedAtAfter: DateTime) {
+  providers(
+    ids: $ids
+    name: $name
+    code: $code
+    createdAtBefore: $createdAtBefore
+    createdAtAfter: $createdAtAfter
+    updatedAtBefore: $updatedAtBefore
+    updatedAtAfter: $updatedAtAfter
+  ) {
+    edges {
+      node {
+        ...ProviderNode
+      }
+    }
+  }
+}
+
+mutation ProviderCreate($code: String!, $name: String!, $description: String, $params: JSON) {
+  providerCreate(
+    code: $code
+    name: $name
+    description: $description
+    params: $params
+  ) {
+    ...ProviderNode
+  }
+}
+
+mutation ProviderUpdate($id: GlobalID!, $name: String, $code: String, $description: String, $params: JSON) {
+  providerUpdate(
+    id: $id
+    name: $name
+    code: $code
+    description: $description
+    params: $params
+  ) {
+    ...ProviderNode
+  }
+}
+
+mutation ProviderDestory($ids: [GlobalID!]!) {
+	providerDestory(ids: $ids)
+}

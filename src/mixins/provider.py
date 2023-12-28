@@ -2,9 +2,7 @@
 import typing
 
 # Third Party Library
-from fastapi import status
 from tortoise import Model
-from tortoise.exceptions import MultipleObjectsReturned
 from tortoise.transactions import atomic
 from ulid import ULID
 
@@ -41,27 +39,27 @@ class ProviderMixin:
         """
         Create user from template
         """
-        # First Library
-        from providers.abc import __registry__
 
         application = applications.ContactApplication()
-
-        if code not in __registry__:
-            raise exceptions.ProviderCodeNotFoundError
-
-        provider_cls = __registry__[code]
-        provider_cls.validate_parameters(params)
+        validated_params = cls.validate_params(
+            provider_cls=cls.get_provider_cls(code),
+            params=params,
+        )
 
         domain = await cls.create(
             name=name,
             code=code,
             description=description,
-            params=params,
+            params=validated_params,
         )
-        contacts = await application.get_contacts(
-            conditions={"code__in": [provider_cls.supported_contacts]}
+        contact_qs = await application.get_contacts(
+            conditions={
+                "code__in": list(
+                    map(lambda e: e.value, cls.provider_cls.supported_contacts)
+                )
+            }
         )
-        await domain.add_contacts(*contacts)
+        await domain.add_contacts(*(await contact_qs))
         return domain
 
     @property
@@ -72,14 +70,38 @@ class ProviderMixin:
     def db(self):
         return self.repository.select_for_update().filter(id=self.id)
 
-    @atomic
+    @classmethod
+    def get_provider_cls(cls, code: str):
+        # First Library
+        from providers.abc import __registry__
+
+        if code not in __registry__:
+            raise exceptions.ProviderCodeNotFoundError
+        return __registry__[code]
+
+    @property
+    def provider(self):
+        return self.get_provider_cls(self.code)(parameters=self.params)
+
+    @property
+    def provider_cls(self):
+        return self.get_provider_cls(self.code)
+
+    @classmethod
+    def validate_params(cls, provider_cls, params):
+        validated = provider_cls.validate_parameters(params)
+        if validated is not None:
+            return validated.model_dump()
+        return {}
+
+    @atomic("default")
     async def add_contacts(self, *contacts):
         """
         Add contacts to user
         """
         await self.contacts.add(*contacts)
 
-    @atomic
+    @atomic("default")
     async def remove_contacts(self, *contacts, all: bool = False):
         """
         Remove contacts from user
@@ -91,3 +113,35 @@ class ProviderMixin:
             await self.contacts.clear()
         else:
             await self.contacts.remove(*contacts)
+
+    @atomic("default")
+    async def set_name(self, name: str, save: bool = True):
+        if save is True:
+            await self.db.update(name=name)
+        else:
+            self.name = name
+
+    @atomic("default")
+    async def set_code(self, code: str, save: bool = True):
+        if save is True:
+            await self.db.update(code=code)
+        else:
+            self.code = code
+
+    @atomic("default")
+    async def set_description(self, description: str, save: bool = True):
+        if save is True:
+            await self.db.update(description=description)
+        else:
+            self.description = description
+
+    @atomic("default")
+    async def set_params(self, params: typing.Any, save: bool = True):
+        validated = self.validate_params(
+            provider_cls=self.provider_cls,
+            params=params,
+        )
+        if save is True:
+            await self.db.update(params=validated)
+        else:
+            self.params = validated
