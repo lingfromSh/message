@@ -1,0 +1,55 @@
+fragment ContactNode on ContactTortoiseNode {
+  id
+  name
+  code
+  description
+  definition
+  createdAt
+  updatedAt
+}
+
+query Contacts($ids: [GlobalID!], $name: String, $code: String, $createdAtBefore: DateTime, $createdAtAfter: DateTime, $updatedAtBefore: DateTime, $updatedAtAfter: DateTime) {
+  contacts(
+    ids: $ids
+    name: $name
+    code: $code
+    createdAtBefore: $createdAtBefore
+    createdAtAfter: $createdAtAfter
+    updatedAtBefore: $updatedAtBefore
+    updatedAtAfter: $updatedAtAfter
+  ) {
+    edges {
+      cursor
+      node {
+        ...ContactNode
+      }
+    }
+  }
+}
+
+mutation ContactRegister($name: String!, $code: String!, $definition: ContactDefinitionStrawberryType!, $description: String) {
+  contactRegister(
+    name: $name
+    code: $code
+    definition: $definition
+    description: $description
+  ) {
+    ...ContactNode
+  }
+}
+
+mutation ContactUpdate($id: GlobalID!, $name: String, $code: String, $definition: ContactDefinitionStrawberryType, $description: String) {
+  contactUpdate(
+    id: $id
+    name: $name
+    code: $code
+    definition: $definition
+    description: $description
+  ) {
+    ...ContactNode
+  }
+}
+
+mutation ContactDestory($ids: [GlobalID!]!) {
+  contactDestroy(ids: $ids)
+}

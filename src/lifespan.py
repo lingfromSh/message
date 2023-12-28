@@ -45,6 +45,7 @@ async def initialize_fixtures(app: FastAPI):
                     definition={"type": "pydantic", "contact_schema": code},
                     save=False,
                 )
+                await contact.save()
             except Exception:
                 await application.create_contact(
                     name=code.capitalize(),

@@ -14,9 +14,10 @@ class Contact(mixins.ContactMixin, BaseModel):
     """
 
     name = fields.CharField(max_length=255)
-    code = fields.CharField(max_length=255, unique=True)
+    code = fields.CharField(max_length=255)
     description = fields.TextField()
     definition = fields.JSONField(default=dict)
 
     class Meta:
         table = "contacts"
+        unqiue_together = ("code", "deleted_at")

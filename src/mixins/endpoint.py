@@ -32,13 +32,14 @@ class EndpointMixin:
         return self.repository.select_for_update().filter(id=self.id)
 
     async def check_contact_value(self, new_value) -> bool:
-        validated_result = self.contact.validate_contact(new_value)
-        return validated_result.valid
+        validated_result = await (await self.contact).validate_contact(new_value)
+        return validated_result
 
     async def set_value(self, value, *, save: bool = True):
-        if not await self.check_contact_value(value):
+        validated_result = await self.check_contact_value(value)
+        if not validated_result.valid:
             raise exceptions.EndpointContactIsNotValidError
         if save:
-            await self.db.update(value=value)
+            await self.db.update(value=validated_result.validated_data)
         else:
-            self.value = value
+            self.value = validated_result.validated_data

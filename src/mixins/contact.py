@@ -7,9 +7,9 @@ from contextlib import suppress
 import jsonschema
 import pydantic
 from pydantic import BaseModel
+from pydantic import ValidationInfo
 from pydantic import model_validator
 from tortoise import Model
-from tortoise.transactions import atomic
 from ulid import ULID
 
 # First Library
@@ -24,10 +24,9 @@ class ContactDefinitionModel(BaseModel):
     contact_schema: typing.Union[typing.Dict, str]
 
     def check_jsonschema(self):
-        try:
-            jsonschema.Validator.validate(self.contact_schema)
-        except jsonschema.ValidationError:
-            raise ValueError("Invalid JSON Schema")
+        # Do nothing, because jsonschema is flexible.
+        # And user should check it by themselves.
+        pass
 
     def check_pydantic_schema(self):
         if not self.get_pydantic_schema_model():
@@ -37,7 +36,10 @@ class ContactDefinitionModel(BaseModel):
         return ContactMixin.get_schema(self.contact_schema)
 
     @model_validator(mode="after")
-    def validate(self):
+    def validate(self, info: ValidationInfo):
+        if info.context and "from_api" in info.context and info.context["from_api"]:
+            if self.type != "jsonschema":
+                raise exceptions.ContactSchemaNotSupportError
         if self.type == "jsonschema":
             self.check_jsonschema()
         elif self.type == "pydantic":
@@ -49,13 +51,13 @@ class ContactDefinitionModel(BaseModel):
         if self.type == "jsonschema":
             with suppress(jsonschema.ValidationError):
                 jsonschema.validate(contact, self.contact_schema)
-                return ValidateResult(True, contact)
+                return ValidateResult(valid=True, validated_data=contact)
         elif self.type == "pydantic":
             with suppress(pydantic.ValidationError):
                 pydantic_schema_model = self.get_pydantic_schema_model()
                 validated = pydantic_schema_model.model_validate(contact)
-                return ValidateResult(True, validated)
-        return ValidateResult(False, None)
+                return ValidateResult(valid=True, validated_data=validated.model_dump())
+        return ValidateResult(valid=False, validated_data=None)
 
 
 class ContactMixin:
@@ -121,9 +123,21 @@ class ContactMixin:
 
     @property
     def contact_schema(self) -> ContactDefinitionModel:
-        return ContactDefinitionModel.model_validate(self.deifnition)
+        return ContactDefinitionModel.model_validate(self.definition)
 
-    @atomic
+    @classmethod
+    async def validate_code(cls, code: str, instance: typing.Self = None) -> str:
+        """
+        Validate code
+        """
+        code = code.lower()
+        qs = cls.select_for_update().filter(code=code)
+        if instance is not None:
+            qs = qs.exclude(id=instance.id)
+        if await qs.exists():
+            raise exceptions.ContactDuplicatedCodeError
+        return code
+
     async def set_definition(
         self, definition: typing.Dict[str, typing.Any], save: bool = True
     ):
@@ -134,7 +148,7 @@ class ContactMixin:
         if save:
             await self.db.update(definition)
         else:
-            self.deifnition = definition
+            self.definition = definition
 
     async def set_name(self, name: str, *, save: bool = True):
         """
@@ -149,8 +163,7 @@ class ContactMixin:
         """
         Set code
         """
-        if await self.db.select_for_update().filter(code=code).exists():
-            raise exceptions.ContactDuplicatedCodeError
+        code = await self.validate_code(code, instance=self)
         if save:
             await self.db.update(code=code)
         else:
@@ -175,7 +188,4 @@ class ContactMixin:
             self.description = description
 
     async def validate_contact(self, contact: typing.Any) -> ValidateResult:
-        with suppress(pydantic.ValidationError):
-            validated = self.contact_schema.validate_contact(contact)
-            return ValidateResult(True, validated)
-        return ValidateResult(False, None)
+        return self.contact_schema.validate_contact(contact)

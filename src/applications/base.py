@@ -23,6 +23,9 @@ class ApplicationBase(typing.Generic[T]):
         ApplicationBase.__registry__[clsname] = cls
         return cls
 
+    def other(self, name: typing.Literal["contact", "endpoint", "user"]):
+        return ApplicationBase.__registry__[name]()
+
     async def get_objs(
         self,
         conditions: typing.Dict = None,
@@ -47,12 +50,15 @@ class ApplicationBase(typing.Generic[T]):
         return await self.repository.from_id(id=id)
 
     async def destory_objs(
-        self, *ids: typing.List[ULID]
+        self,
+        *ids: typing.List[ULID],
+        real: bool = False,
     ) -> typing.Literal["ok", "error"]:
         with suppress(Exception):
-            async with in_transaction():
-                await self.repository.active_objects.select_for_update().filter(
-                    id__in=ids
-                ).update(is_deleted=True, deleted_at=now())
-                return "ok"
+            qs = self.repository.active_objects.select_for_update().filter(id__in=ids)
+            if real:
+                await qs.delete()
+            else:
+                await qs.update(is_deleted=True, deleted_at=now())
+            return "ok"
         return "error"

@@ -11,7 +11,9 @@ from common.graphql.relay import TortoiseORMPaginationConnection
 from common.graphql.relay import connection
 
 # Local Folder
-from .obecttypes import UserTortoiseORMNode
+from .objecttypes import UserEndpointAddInput
+from .objecttypes import UserEndpointUpdateInput
+from .objecttypes import UserTortoiseORMNode
 
 
 @strawberry.type(description="User API")
@@ -48,13 +50,18 @@ class Mutation:
         self,
         external_id: str,
         metadata: typing.Optional[strawberry.scalars.JSON] = None,
-        endpoints: typing.Optional[typing.List[strawberry.scalars.JSON]] = None,
+        endpoints: typing.Optional[typing.List[UserEndpointAddInput]] = None,
     ) -> UserTortoiseORMNode:
         application = applications.UserApplication()
         created = await application.create_user(
-            external_id=external_id, metadata=metadata
+            external_id=external_id,
+            metadata=metadata,
+            endpoints=[
+                {"contact": endpoint.contact.node_id, "value": endpoint.value}
+                for endpoint in endpoints
+            ],
         )
-        return UserTortoiseORMNode.resolve_orm(created)
+        return await UserTortoiseORMNode.resolve_orm(created)
 
     @strawberry.mutation(description="Update user")
     async def user_update(
@@ -63,10 +70,23 @@ class Mutation:
         external_id: typing.Optional[str] = None,
         metadata: typing.Optional[strawberry.scalars.JSON] = None,
         is_active: typing.Optional[bool] = None,
-        endpoints: typing.Optional[typing.List[strawberry.scalars.JSON]] = None,
+        endpoints: typing.Optional[typing.List[UserEndpointUpdateInput]] = None,
     ) -> UserTortoiseORMNode:
         application = applications.UserApplication()
         user = await application.get_user(id.node_id)
+        # TODO: replace node_id with id.resolve_node
+        endpoints = [
+            {
+                "id": endpoint.id.node_id,
+                "value": endpoint.value,
+            }
+            if endpoint.id is not None
+            else {
+                "contact": endpoint.contact.node_id,
+                "value": endpoint.value,
+            }
+            for endpoint in endpoints
+        ]
         await application.update_user(
             user,
             external_id=external_id,
@@ -75,7 +95,7 @@ class Mutation:
             endpoints=endpoints,
         )
         # TODO: implement auto return type convertion
-        return UserTortoiseORMNode.resolve_orm(user)
+        return await UserTortoiseORMNode.resolve_orm(user)
 
     @strawberry.mutation(description="Delete users")
     async def user_destory(

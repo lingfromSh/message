@@ -19,6 +19,7 @@ class DefinedError(Exception):
     Defined Error
     """
 
+    # TODO: add context to build message or details
     code: int = status.HTTP_400_BAD_REQUEST
     status_code: int = status.HTTP_400_BAD_REQUEST
     message: str = "some errors happended"
@@ -33,6 +34,7 @@ class DefinedError(Exception):
         code: typing.Optional[str] = None,
         details: typing.Optional[typing.Dict[str, typing.Any]] = None,
         headers: typing.Optional[typing.Dict[str, str]] = None,
+        context: typing.Optional[typing.Dict] = None,
     ) -> None:
         self.status_code = status_code or get_class_attribute(
             self.__class__,
@@ -42,10 +44,13 @@ class DefinedError(Exception):
             self.__class__,
             "code",
         )
-        self.message = message or get_class_attribute(
-            self.__class__,
-            "message",
-        )
+        self.message = (
+            message
+            or get_class_attribute(
+                self.__class__,
+                "message",
+            )
+        ).format(**(context or {}))
         self.details = details or get_class_attribute(
             self.__class__,
             "details",

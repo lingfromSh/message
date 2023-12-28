@@ -16,12 +16,14 @@ from strawberry.relay import NodeID
 from strawberry.relay import NodeType
 from strawberry.relay.exceptions import RelayWrongAnnotationError
 from strawberry.relay.exceptions import RelayWrongResolverAnnotationError
+from strawberry.relay.utils import to_base64
 from strawberry.type import StrawberryContainer
 from strawberry.type import get_object_definition
 from strawberry.types.info import Info
 from strawberry.utils.await_maybe import AwaitableOrValue
 from strawberry.utils.typing import eval_type
 from tortoise import Model
+from tortoise import Tortoise
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise.contrib.pydantic.creator import pydantic_queryset_creator
 from tortoise.queryset import QuerySet
@@ -79,6 +81,7 @@ class TortoiseORMModelNodeMetaclass(type):
         # make new name
         name = "{model_name}TortoiseNode".format(model_name=tortoise_model.__name__)
         # make new bases
+        # TODO: add relation fields
         pydantic_model = pydantic_model_creator(tortoise_model)
         pydantic_queryset_model = pydantic_queryset_creator(tortoise_model)
         pure_python_type = convert_python_type_to_pure_python_type(pydantic_model)
@@ -117,7 +120,8 @@ class _DefaultTortoiseNode(Node):
 
 class TortoiseORMNode(metaclass=TortoiseORMModelNodeMetaclass):
     @classmethod
-    def resolve_orm(cls, orm) -> typing.Self:
+    async def resolve_orm(cls, orm) -> typing.Self:
+        await orm.refresh_from_db()
         resolved = cls.__pydantic_model__.from_orm(orm)
         return cls(**resolved.model_dump())
 
@@ -247,7 +251,7 @@ class TortoiseORMPaginationConnection(Connection[NodeType]):
 
             # TODO: use dataloader to optimize problems about fetching related
             nodes = nodes.filter(**common_filter)
-            nodes = nodes.limit(limit).offset(offset)
+            nodes = nodes.limit(limit).offset(offset).order_by("-created_at")
             edges: typing.List[strawberry.relay.Edge] = [
                 edge_class.resolve_edge(
                     cls.resolve_node(node, info=info, node_type=node_type, **kwargs),

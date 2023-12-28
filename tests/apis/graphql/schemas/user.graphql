@@ -1,0 +1,52 @@
+fragment UserNode on UserTortoiseNode {
+  id
+  externalId
+  metadata
+  isActive
+  createdAt
+  updatedAt
+}
+
+query Users($ids: [GlobalID!], $externalIds: [String!], $isActive: Boolean, $createdAtBefore: DateTime, $createdAtAfter: DateTime, $updatedAtBefore: DateTime, $updatedAtAfter: DateTime) {
+  users(
+    ids: $ids
+    externalIds: $externalIds
+    isActive: $isActive
+    createdAtBefore: $createdAtBefore
+    createdAtAfter: $createdAtAfter
+    updatedAtBefore: $updatedAtBefore
+    updatedAtAfter: $updatedAtAfter
+  ) {
+    edges {
+      node {
+        ...UserNode
+      }
+    }
+  }
+}
+
+
+mutation UserRegister($externalId: String!, $metadata: JSON, $endpoints: [UserEndpointAddInput!]) {
+  userRegister(
+    externalId: $externalId
+    metadata: $metadata
+    endpoints: $endpoints
+  ) {
+    ...UserNode
+  }
+}
+
+mutation UserUpdate($id: GlobalID!, $externalId: String!, $metadata: JSON, $endpoints: [UserEndpointUpdateInput!]) {
+  userUpdate(
+    id: $id
+    externalId: $externalId
+    metadata: $metadata
+    endpoints: $endpoints
+  ) {
+    ...UserNode
+  }
+}
+
+mutation UserDestory($ids: [GlobalID!]!) {
+  userDestory(ids: $ids)
+}

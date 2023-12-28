@@ -15,4 +15,4 @@ class Schema(BaseModel):
     Websocket schema
     """
 
-    connection_id: str
+    connection: str

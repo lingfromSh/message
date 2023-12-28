@@ -31,7 +31,7 @@ class Query:
             conditions["name__icontains"] = name
         if code is not None:
             conditions["code__icontains"] = code
-        return application.get_providers(conditions)
+        return await application.get_providers(conditions)
 
 
 @strawberry.type(description="Provider API")
@@ -46,7 +46,7 @@ class Mutation:
     ) -> ProviderTortoiseORMNode:
         application = applications.ProviderApplication()
         provider = await application.create_provider(name, code, description, params)
-        return ProviderTortoiseORMNode.resolve_orm(provider)
+        return await ProviderTortoiseORMNode.resolve_orm(provider)
 
     @strawberry.mutation(description="Destory providers")
     async def provider_destory(self, ids: typing.List[relay.GlobalID]) -> str:

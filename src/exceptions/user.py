@@ -8,6 +8,7 @@ __all__ = [
     "UserNotFoundError",
     "UserDuplicatedExternalIDError",
     "UserMetadataWithWrongTypeError",
+    "UserGotInvalidEndpointError",
 ]
 
 
@@ -23,3 +24,7 @@ class UserDuplicatedExternalIDError(DefinedError):
 
 class UserMetadataWithWrongTypeError(DefinedError):
     message = "Metadata must be a map"
+
+
+class UserGotInvalidEndpointError(DefinedError):
+    message = "User can not bind invalid endpoint"

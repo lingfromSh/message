@@ -23,3 +23,8 @@ class ContactDuplicatedCodeError(DefinedError):
 
 class ContactSchemaAlreadyRegisteredError(DefinedError):
     message = "Contact schema already registered"
+
+
+class ContactSchemaNotSupportError(DefinedError):
+    # TODO: need more correct error message
+    message = "Assign pydantic schema as contact definition is not supported via API"

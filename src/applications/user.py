@@ -10,6 +10,8 @@ from ulid import ULID
 # First Library
 import exceptions
 import models
+from applications.base import T
+from helpers.decorators import ensure_infra
 
 # Local Folder
 from .base import ApplicationBase
@@ -19,6 +21,7 @@ class UserApplication(ApplicationBase[models.User]):
     def __init__(self, repository: typing.Type[models.User] = models.User):
         self.repository: typing.Type[models.User] = repository
 
+    @ensure_infra("persistence")
     async def get_users(
         self,
         conditions: typing.Dict = None,
@@ -28,19 +31,16 @@ class UserApplication(ApplicationBase[models.User]):
         order_by: typing.List[str] = None,
         for_update: bool = False,
     ) -> typing.AsyncIterable[models.User]:
-        qs = self.repository.active_objects.filter(**conditions)
-        if offset is not None:
-            qs = qs.offset(offset)
-        if limit is not None:
-            qs = qs.limit(limit)
-        if order_by is not None:
-            qs = qs.order_by(*order_by)
-        if for_update:
-            qs = qs.select_for_update()
-        return qs
+        return await self.get_objs(
+            conditions=conditions,
+            offset=offset,
+            limit=limit,
+            order_by=order_by,
+            for_update=for_update,
+        )
 
     async def get_user(self, id: ULID) -> typing.Optional[models.User]:
-        return await self.repository.from_id(id=id)
+        return await self.get_obj(id=id)
 
     async def get_user_by_external_id(
         self, external_id: str
@@ -56,17 +56,19 @@ class UserApplication(ApplicationBase[models.User]):
     ) -> models.User:
         async with in_transaction():
             params = {}
-            if await self.repository.active_objects.filter(
-                external_id=external_id
-            ).exists():
-                raise exceptions.UserDuplicatedExternalIDError
+            await self.repository.validate_external_id(external_id)
             if metadata is not None:
                 params["metadata"] = metadata
             if is_active is not None:
                 params["is_active"] = is_active
-            # TODO: handle endpoints
-            return await self.repository.create(external_id=external_id, **params)
 
+            domain = await self.repository.create(external_id=external_id, **params)
+            if endpoints is not None:
+                await domain.add_endpoints(*endpoints)
+
+            return domain
+
+    @ensure_infra("persistence")
     async def update_user(
         self,
         user: models.User,
@@ -80,9 +82,20 @@ class UserApplication(ApplicationBase[models.User]):
                 await user.set_external_id(external_id, save=False)
             if metadata is not None:
                 await user.set_metadata(metadata, save=False)
-            if is_active is not None:
-                await user.set_is_active(is_active, save=False)
-            await user.save(update_fields=["external_id", "metadata", "is_active"])
+            if is_active is not None and is_active:
+                await user.activate(is_active, save=False)
+            elif is_active is not None and is_active is False:
+                await user.deactivate(is_active, save=False)
+            if endpoints:
+                await user.set_endpoints(*endpoints)
+            await user.save(
+                update_fields=[
+                    "external_id",
+                    "metadata",
+                    "is_active",
+                    "updated_at",
+                ]
+            )
             return user
 
     async def destroy_users(

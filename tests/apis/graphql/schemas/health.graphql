@@ -1,0 +1,36 @@
+fragment HealthStatus on StrawberryHealthStatus {
+  status
+  checks {
+    check
+    status
+    result
+  }
+}
+
+query HealthStatusAll {
+  healthStatusAll {
+    persistence {
+      ...HealthStatus
+    }
+    storage {
+      ...HealthStatus
+    }
+    background {
+      ...HealthStatus
+    }
+  }
+}
+
+subscription HealthSubscription {
+  healthStatusAll {
+    persistence {
+      ...HealthStatus
+    }
+    storage {
+      ...HealthStatus
+    }
+    background {
+      ...HealthStatus
+    }
+  }
+}

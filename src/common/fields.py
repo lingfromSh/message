@@ -30,7 +30,7 @@ class ULIDField(Field[ULID], ULID):
 
     def __init__(self, **kwargs: Any) -> None:
         if kwargs.get("pk", False) and "default" not in kwargs:
-            kwargs["default"] = lambda: str(ULID())
+            kwargs["default"] = lambda: ULID()
         super().__init__(**kwargs)
 
     def to_db_value(

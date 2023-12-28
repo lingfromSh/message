@@ -8,7 +8,7 @@ from strawberry import relay
 # First Library
 import applications
 from common.graphql.relay import TortoiseORMPaginationConnection
-from common.graphql.relay import TortoiseORMPaginationConnectionExtension
+from common.graphql.relay import connection
 
 # Local Folder
 from .objecttypes import EndpointTortoiseORMNode
@@ -16,10 +16,7 @@ from .objecttypes import EndpointTortoiseORMNode
 
 @strawberry.type(description="Endpoint API")
 class Query:
-    @relay.connection(
-        TortoiseORMPaginationConnection[EndpointTortoiseORMNode],
-        extensions=[TortoiseORMPaginationConnectionExtension()],
-    )
+    @connection(TortoiseORMPaginationConnection[EndpointTortoiseORMNode])
     async def endpoints(
         self,
         ids: typing.Optional[typing.List[relay.GlobalID]] = None,
@@ -45,25 +42,29 @@ class Mutation:
 
     @strawberry.mutation(description="Create endpoint")
     async def endpoint_create(
-        self, user_id: relay.GlobalID, contact_id: relay.GlobalID
+        self,
+        user_id: relay.GlobalID,
+        contact_id: relay.GlobalID,
+        value: strawberry.scalars.JSON,
     ) -> EndpointTortoiseORMNode:
         application = applications.EndpointApplication()
-        endpoint = application.create_endpoint(
+        endpoint = await application.create_endpoint(
             user_id=user_id.node_id,
             contact_id=contact_id.node_id,
+            value=value,
         )
-        return EndpointTortoiseORMNode.resolve_orm(endpoint)
+        return await EndpointTortoiseORMNode.resolve_orm(endpoint)
 
     @strawberry.mutation(description="Update endpoint")
     async def endpoint_update(
         self, id: relay.GlobalID, value: strawberry.scalars.JSON
     ) -> EndpointTortoiseORMNode:
         application = applications.EndpointApplication()
-        endpoint = await application.get_endpoint(id=id)
+        endpoint = await application.get_endpoint(id=id.node_id)
         await application.update_endpoint(endpoint, value=value)
-        return EndpointTortoiseORMNode.resolve_orm(endpoint)
+        return await EndpointTortoiseORMNode.resolve_orm(endpoint)
 
     @strawberry.mutation(description="Destory endpoints")
     async def endpoint_destroy(self, ids: typing.List[relay.GlobalID]) -> str:
         application = applications.EndpointApplication()
-        await application.destory_endpoints(*ids)
+        return await application.destory_objs(*(id.node_id for id in ids))
