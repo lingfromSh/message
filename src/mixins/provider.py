@@ -10,6 +10,7 @@ from ulid import ULID
 import applications
 import exceptions
 import providers
+from events.message import MessageBroadcastEvent
 
 
 class ProviderMixin:
@@ -154,4 +155,14 @@ class ProviderMixin:
 
         return task id
         """
-        await self.provider._send(message)
+        if self.provider.name == "websocket":
+            event = MessageBroadcastEvent(
+                provider_code=self.provider.name,
+                message=message.content,
+                users=[],
+                endpoints=[],
+                contacts=message.contacts,
+            )
+            await event.emit()
+        else:
+            await self.provider._send(message)

@@ -1,6 +1,3 @@
-# Standard Library
-import asyncio
-
 # Third Party Library
 from tortoise import fields
 from tortoise.signals import post_save

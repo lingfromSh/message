@@ -3,10 +3,8 @@ import typing
 
 # Third Party Library
 from pydantic import RootModel
-from ulid import ULID
 
 # First Library
-import applications
 from common.constants import ContactEnum
 
 # Local Folder

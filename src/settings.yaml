@@ -2,7 +2,10 @@ persistence:
   dsn: postgres://pgadmin:pgpassword@localhost:5432/message
 
 cache:
-  dsn: redis://localhost:6379/0
+  dsn: redis://localhost:6379/
+
+queue:
+  dsn: amqp://rbadmin:rbpassword@localhost:5672/
 
 storage:
   mode: local

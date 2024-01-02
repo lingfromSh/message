@@ -2,6 +2,7 @@
 import enum
 import os
 
+QUEUE_NAME = "message"
 SETTINGS_YAML = os.environ.get("MESSAGE_SETTINGS", "settings.yaml")
 
 

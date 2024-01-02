@@ -1,9 +1,7 @@
 # Standard Library
-import asyncio
 from contextlib import asynccontextmanager
 
 # Third Party Library
-import backoff
 from fastapi import FastAPI
 from strawberry.fastapi.router import GraphQLRouter
 from tortoise.transactions import in_transaction
@@ -55,6 +53,20 @@ async def initialize_fixtures(app: FastAPI):
                 )
 
 
+async def initialize_eventbus(app: FastAPI):
+    # First Library
+    from events import EventBus
+    from events.base import get_event_class
+
+    eventbus = EventBus(getter=get_event_class)
+    await eventbus.startup()
+    return eventbus
+
+
+async def shutdown_eventbus(app: FastAPI, eventbus):
+    await eventbus.shutdown()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -67,8 +79,12 @@ async def lifespan(app: FastAPI):
     await initialize_graphql_api(app)
     # initialize fixtures
     await initialize_fixtures(app)
+    # initialize eventbus
+    eventbus = await initialize_eventbus(app)
 
     yield
 
+    # shutdown eventbus
+    await shutdown_eventbus(app, eventbus)
     # shutdown infrastructure container
     await shutdown_infra(app)

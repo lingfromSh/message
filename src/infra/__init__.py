@@ -11,6 +11,7 @@ from common.constants import SETTINGS_YAML
 from infra.background import BackgroundSchedulerInfrastructure
 from infra.cache import CacheInfrastructure
 from infra.persistence import PersistenceInfrastructure
+from infra.queue import QueueInfrastructure
 from infra.storage import StorageInfrastructure
 from infra.websocket import WebsocketInfrastructure
 
@@ -31,8 +32,15 @@ class InfrastructureContainer(DeclarativeContainer):
         url=config.cache.dsn,
     )
 
+    queue: typing.Callable[
+        [], typing.Awaitable[QueueInfrastructure]
+    ] = providers.Resource(
+        QueueInfrastructure,
+        url=config.queue.dsn,
+    )
+
     persistence: typing.Callable[
-        [], typing.Awaitable[StorageInfrastructure]
+        [], typing.Awaitable[PersistenceInfrastructure]
     ] = providers.Resource(
         PersistenceInfrastructure,
         dsn=config.persistence.dsn,

@@ -1,5 +1,4 @@
 # Third Party Library
-from blinker import signal
 from tortoise.timezone import now
 from ulid import ULID
 
