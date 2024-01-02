@@ -2,6 +2,7 @@
 import asyncio
 import typing
 from asyncio.queues import Queue
+from contextlib import suppress
 
 # Third Party Library
 import backoff
@@ -15,28 +16,41 @@ from infra.abc import HealthStatus
 from infra.abc import Infrastructure
 
 
+async def print_close_connection_id(id):
+    ...
+
+
 class WebsocketConnection:
-    TERMINATE = "terminateterminateterminate"
+    TERMINATE = "terminate#"
 
     def __init__(
         self,
         id,
         websocket: WebSocket,
+        background_scheduler,
         *,
         listeners: typing.List[typing.Callable] = None,
+        close_callbacks: typing.List[typing.Callable] = None,
     ):
         self.id = id
         self.websocket = websocket
-        self.recv_task = None
+        self.background_scheduler = background_scheduler
+        self.recv_task: asyncio.Task = None
         self.recv_queue = Queue()
         self.listeners = listeners if listeners else []
+        self.close_callbacks = close_callbacks if close_callbacks else []
         self.close_event = asyncio.Event()
 
     async def send(self, message):
         try:
-            await self.websocket.send_text(orjson.dumps(message).decode())
+            message = orjson.dumps(message).decode()
+            send_method = self.websocket.send_text
         except orjson.JSONDecodeError:
-            await self.websocket.send_json(message)
+            message = message
+            send_method = self.websocket.send_json
+
+        with suppress(BaseException):
+            await send_method(message)
 
     async def notify(self, data):
         for listener in self.listeners:
@@ -45,7 +59,7 @@ class WebsocketConnection:
             except BaseException:
                 pass
 
-    async def start_recv_task(self):
+    async def start_notify_task(self):
         async def task():
             while True:
                 data = await self.recv_queue.get()
@@ -68,20 +82,20 @@ class WebsocketConnection:
         self.close_event.set()
 
     async def send_welcome(self):
-        await self.websocket.send_json({"type": "welcome", "id": self.id})
+        await self.send({"type": "welcome", "id": self.id})
 
     async def init(self):
         await self.websocket.accept()
-        await self.start_recv_task()
+        await self.start_notify_task()
 
-    @backoff.on_predicate(
-        backoff.expo,
-        lambda x: x is True,
-        max_tries=10,
-    )
     async def shutdown(self) -> bool:
+        for close_callback in self.close_callbacks:
+            self.background_scheduler.run_task_in_process_executor(
+                close_callback,
+                args=(self.id,),
+            )
         self.close_event.set()
-        self.recv_queue.put_nowait(self.TERMINATE)
+        await self.recv_queue.put(self.TERMINATE)
         return self.recv_task.done() and await self.close_event.wait()
 
     def __del__(self):
@@ -99,8 +113,10 @@ class WebsocketInfrastructure(Infrastructure):
         self.connections = {}
 
     def generate_id(self) -> ULID:
-        return "1"
-        return str(ULID())
+        generated = str(ULID())
+        while generated in self.connections:
+            generated = str(ULID())
+        return generated
 
     async def health_check(self) -> HealthStatus:
         return HealthStatus(
@@ -114,7 +130,8 @@ class WebsocketInfrastructure(Infrastructure):
             ],
         )
 
-    async def init(self) -> Infrastructure:
+    async def init(self, background_scheduler) -> Infrastructure:
+        self.background_scheduler = background_scheduler
         return self
 
     async def shutdown(self, resource: Infrastructure):
@@ -128,12 +145,12 @@ class WebsocketInfrastructure(Infrastructure):
         """
         # TODO: add some background tasks
         connection_id = self.generate_id()
-        while connection_id in self.connections:
-            connection_id = self.generate_id()
         try:
             async with self.write_lock:
                 self.connections[connection_id] = WebsocketConnection(
-                    connection_id, connection
+                    connection_id,
+                    connection,
+                    self.background_scheduler,
                 )
         except Exception as e:
             print(e)
@@ -144,15 +161,17 @@ class WebsocketInfrastructure(Infrastructure):
         del self.connections[connection.id]
         del connection
 
-    async def send(self, message, connection_ids):
-        try:
-            for connection_id in connection_ids:
-                connection = self.connections.get(connection_id)
-                if connection:
-                    if isinstance(message, (str, int, float, bool)):
-                        await connection.send_text(message)
-                    else:
-                        await connection.send_json(message)
-            return True
-        except Exception:
-            return False
+    async def send(self, message, connection_ids) -> typing.List[bool]:
+        results = []
+        for connection_id in connection_ids:
+            connection = self.connections.get(connection_id)
+            if connection:
+                try:
+                    await connection.send(message)
+                    results.append(True)
+                except Exception as err:
+                    results.append(False)
+            else:
+                results.append(False)
+
+        return results

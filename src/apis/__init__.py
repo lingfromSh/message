@@ -4,6 +4,8 @@ from dataclasses import dataclass
 # Third Party Library
 import strawberry
 from strawberry import relay
+from strawberry.extensions import ParserCache
+from strawberry.extensions import ValidationCache
 from strawberry.schema.config import StrawberryConfig
 
 # Local Folder
@@ -15,6 +17,7 @@ from .health import Query as HealthQuery
 from .health import Subscription as HealthSubscription
 from .message import Mutation as MessageMutation
 from .message import Query as MessageQuery
+from .message import Subscription as MessageSubscription
 from .provider import Mutation as ProviderMutation
 from .provider import Query as ProviderQuery
 from .user import Mutation as UserMutation
@@ -45,7 +48,10 @@ class Mutation(
 
 
 @strawberry.type
-class Subscription(HealthSubscription):
+class Subscription(
+    HealthSubscription,
+    MessageSubscription,
+):
     ...
 
 
@@ -59,4 +65,5 @@ schema = strawberry.Schema(
     mutation=Mutation,
     subscription=Subscription,
     config=SchemaConfig(),
+    extensions=[ParserCache(), ValidationCache()],
 )

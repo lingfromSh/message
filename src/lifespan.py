@@ -1,10 +1,9 @@
 # Standard Library
-import gc
+import asyncio
 from contextlib import asynccontextmanager
 
 # Third Party Library
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+import backoff
 from fastapi import FastAPI
 from strawberry.fastapi.router import GraphQLRouter
 from tortoise.transactions import in_transaction
@@ -12,6 +11,7 @@ from tortoise.transactions import in_transaction
 # First Library
 from apis import schema
 from helpers.decorators import ensure_infra
+from infra import get_infra
 from infra import initialize_infra
 from infra import shutdown_infra
 

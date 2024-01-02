@@ -18,6 +18,7 @@ class EndpointApplication(ApplicationBase[models.Endpoint]):
     def __init__(self, repository: models.Endpoint = models.Endpoint):
         super().__init__(repository)
 
+    # TODO: make this function sync
     @ensure_infra("persistence")
     async def get_endpoints(
         self,

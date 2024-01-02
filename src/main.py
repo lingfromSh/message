@@ -1,8 +1,10 @@
 # Third Party Library
+from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import WebSocket
 
 # First Library
+from infra import InfrastructureContainer
 from infra import get_infra
 from lifespan import lifespan
 
@@ -15,9 +17,11 @@ app = FastAPI(
 
 
 @app.websocket("/websocket/")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    infra: InfrastructureContainer = Depends(get_infra),
+):
     try:
-        infra = get_infra()
         infra_websocket = await infra.websocket()
         connection = await infra_websocket.add_connection(websocket)
         await connection.init()

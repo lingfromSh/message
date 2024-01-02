@@ -4,9 +4,11 @@ from abc import ABCMeta
 
 # Third Party Library
 from pydantic import BaseModel
+from ulid import ULID
 
 # First Library
 import exceptions
+from infra import get_infra
 
 __registry__ = {}
 
@@ -18,8 +20,8 @@ class ProviderBase(metaclass=ABCMeta):
     supported_contacts: typing.List[str]
 
     # abilities
-    can_recv: bool
-    can_send: bool
+    can_recv: bool = False
+    can_send: bool = False
 
     # definitions
     parameter_definition: typing.Optional[BaseModel]
@@ -27,32 +29,20 @@ class ProviderBase(metaclass=ABCMeta):
 
     # TODO: subscribers: typing.Any
 
-    def __init__(self, infra, parameters: "parameter_definition"):
-        self.infra = infra
+    def __init__(self, parameters: "parameter_definition"):
+        self.infra = get_infra()
         self.parameters = parameters
 
     def __init_subclass__(cls) -> None:
         global __registry__
         __registry__.update({cls.name: cls})
 
-    async def _send(
-        self,
-        message: "message_definition",
-        *,
-        users: typing.List[typing.Any] = None,
-        endpoints: typing.List[typing.Any] = None,
-        background: bool = True,
-    ):
+    async def _send(self, message: typing.Any):
         """
         Send message after check.
         """
         if self.can_send is True:
-            await self.send(
-                message,
-                users=users,
-                endpoints=endpoints,
-                background=background,
-            )
+            return await self.send(message)
         raise exceptions.ProviderSendNotSupportError
 
     async def _recv(self):
@@ -60,7 +50,7 @@ class ProviderBase(metaclass=ABCMeta):
         Receive message after check.
         """
         if self.can_recv is True:
-            await self.recv()
+            return await self.recv()
         raise exceptions.ProviderRecvNotSupportError
 
     @classmethod
@@ -86,14 +76,7 @@ class ProviderBase(metaclass=ABCMeta):
             return self.message_definition.model_validate(message)
         return None
 
-    async def send(
-        self,
-        message: "message_definition",
-        *,
-        users: typing.List[typing.Any] = None,
-        endpoints: typing.List[typing.Any] = None,
-        background: bool = True,
-    ):
+    async def send(self, message):
         """
         Custom logic: send message.
         """

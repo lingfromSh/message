@@ -55,7 +55,9 @@ class ProviderMixin:
         contact_qs = await application.get_contacts(
             conditions={
                 "code__in": list(
-                    map(lambda e: e.value, cls.provider_cls.supported_contacts)
+                    map(
+                        lambda e: e.value, cls.get_provider_cls(code).supported_contacts
+                    )
                 )
             }
         )
@@ -145,3 +147,11 @@ class ProviderMixin:
             await self.db.update(params=validated)
         else:
             self.params = validated
+
+    async def send_message(self, message):
+        """
+        Send message to receivers
+
+        return task id
+        """
+        await self.provider._send(message)

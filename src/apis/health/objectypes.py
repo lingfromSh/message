@@ -26,6 +26,7 @@ class StrawberryHealthStatus:
 
 @strawberry.type
 class StrawberryServiceHealthStatus:
+    cache: StrawberryHealthStatus
     persistence: StrawberryHealthStatus
     storage: StrawberryHealthStatus
     websocket: StrawberryHealthStatus

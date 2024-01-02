@@ -6,8 +6,10 @@ from contextlib import suppress
 from tortoise import Model
 from tortoise.queryset import QuerySet
 from tortoise.timezone import now
-from tortoise.transactions import in_transaction
 from ulid import ULID
+
+# First Library
+from infra import get_infra
 
 T = typing.TypeVar("T", bound=Model)
 
@@ -17,13 +19,16 @@ class ApplicationBase(typing.Generic[T]):
 
     def __init__(self, repository: T = T):
         self.repository: T = repository
+        self.infra = get_infra()
 
     def __init_subclass__(cls) -> None:
         clsname = cls.__name__.replace("Application", "").lower()
         ApplicationBase.__registry__[clsname] = cls
         return cls
 
-    def other(self, name: typing.Literal["contact", "endpoint", "user"]):
+    def other(
+        self, name: typing.Literal["contact", "endpoint", "user", "provider"]
+    ) -> "ApplicationBase":
         return ApplicationBase.__registry__[name]()
 
     async def get_objs(

@@ -12,6 +12,7 @@ class ContactEnum(enum.Enum):
 
 
 class MessageStatusEnum(enum.Enum):
+    PENDING = "pending"
     SCHEDULED = "scheduled"
     SENDING = "sending"
     FAILED = "failed"

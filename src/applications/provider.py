@@ -81,3 +81,22 @@ class ProviderApplication(ApplicationBase[models.Provider]):
             ]
         )
         return provider
+
+    async def send_message(
+        self,
+        provider: models.Provider,
+        *,
+        message,
+        users=None,
+        endpoints=None,
+        contacts=None,
+    ) -> ULID:
+        """
+        send message to users, endpoints or contacts
+        """
+        return await provider.send_message(
+            message=message,
+            users=users,
+            endpoints=endpoints,
+            contacts=contacts,
+        )

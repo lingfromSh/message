@@ -3,6 +3,7 @@ import typing
 
 # Third Party Library
 from tortoise.queryset import QuerySet
+from tortoise.transactions import atomic
 from ulid import ULID
 
 # First Library
@@ -13,6 +14,9 @@ from .base import ApplicationBase
 
 
 class MessageApplication(ApplicationBase[models.Message]):
+    def __init__(self, repository: models.Message = models.Message):
+        super().__init__(repository)
+
     def get_messages(
         self,
         conditions: typing.Dict = None,
@@ -31,4 +35,61 @@ class MessageApplication(ApplicationBase[models.Message]):
         )
 
     async def get_message(self, id: ULID) -> models.Message:
-        return await self.repository.from_id(id=id)
+        return await super().get_obj(id=id)
+
+    async def generate_message_id(self) -> ULID:
+        return ULID()
+
+    async def create_message(
+        self,
+        provider,
+        *,
+        message,
+        users=None,
+        endpoints=None,
+        contacts=None,
+        background: bool = True,
+    ) -> typing.Union[ULID, models.Message]:
+        """
+        if background is True, return message id only and return message id only.
+        """
+
+        @atomic("default")
+        async def wrapped_create_message(
+            message_id, *, provider, content, users, endpoints, contacts
+        ):
+            message = await self.repository.create(
+                id=message_id,
+                provider=provider,
+                content=content,
+                contacts=contacts,
+            )
+            if users:
+                await message.add_users(*users)
+            if endpoints:
+                await message.add_endpoints(*endpoints)
+            return message
+
+        if background:
+            message_id = await self.generate_message_id()
+            background_scheduler = await self.infra.background_scheduler()
+            background_scheduler.run_task_in_process_executor(
+                wrapped_create_message,
+                args=(message_id,),
+                kwargs={
+                    "provider": provider,
+                    "content": message,
+                    "contacts": contacts,
+                    "users": users,
+                    "endpoints": endpoints,
+                },
+            )
+            return message_id
+        else:
+            return wrapped_create_message(
+                message_id,
+                provider,
+                message,
+                users,
+                endpoints,
+            )

@@ -1,7 +1,6 @@
 # Standard Library
 import asyncio
-from threading import Event
-from threading import Thread
+import typing
 
 # Third Party Library
 from dependency_injector import providers
@@ -10,6 +9,7 @@ from dependency_injector.containers import DeclarativeContainer
 # First Library
 from common.constants import SETTINGS_YAML
 from infra.background import BackgroundSchedulerInfrastructure
+from infra.cache import CacheInfrastructure
 from infra.persistence import PersistenceInfrastructure
 from infra.storage import StorageInfrastructure
 from infra.websocket import WebsocketInfrastructure
@@ -20,20 +20,38 @@ __infra__ = None
 class InfrastructureContainer(DeclarativeContainer):
     config = providers.Configuration()
 
-    persistence = providers.Resource(
+    background_scheduler: typing.Callable[
+        [], typing.Awaitable[BackgroundSchedulerInfrastructure]
+    ] = providers.Resource(BackgroundSchedulerInfrastructure)
+
+    cache: typing.Callable[
+        [], typing.Awaitable[CacheInfrastructure]
+    ] = providers.Resource(
+        CacheInfrastructure,
+        url=config.cache.dsn,
+    )
+
+    persistence: typing.Callable[
+        [], typing.Awaitable[StorageInfrastructure]
+    ] = providers.Resource(
         PersistenceInfrastructure,
         dsn=config.persistence.dsn,
     )
 
-    storage = providers.Resource(
+    storage: typing.Callable[
+        [], typing.Awaitable[StorageInfrastructure]
+    ] = providers.Resource(
         StorageInfrastructure,
         mode=config.storage.mode,
         options=config.storage.options,
     )
 
-    websocket = providers.Resource(WebsocketInfrastructure)
-
-    background_scheduler = providers.Resource(BackgroundSchedulerInfrastructure)
+    websocket: typing.Callable[
+        [], typing.Awaitable[WebsocketInfrastructure]
+    ] = providers.Resource(
+        WebsocketInfrastructure,
+        background_scheduler=background_scheduler,
+    )
 
 
 async def initialize_infra(app) -> InfrastructureContainer:
