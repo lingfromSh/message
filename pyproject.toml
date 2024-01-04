@@ -39,6 +39,9 @@ aiomultiprocess = "^0.9.0"
 pendulum = "^3.0.0"
 aio-pika = "^9.3.1"
 asyncpg = "^0.29.0"
+loky = "^3.4.1"
+taskiq-fastapi = "^0.3.1"
+taskiq-redis = "^0.5.5"
 
 [[tool.poetry.source]]
 name = "tsinghua"
