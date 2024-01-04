@@ -205,7 +205,6 @@ class TortoiseORMPaginationConnection(Connection[NodeType]):
         """
         default_page_size = info.schema.config.relay_default_page_size
         max_results = info.schema.config.relay_max_results
-
         if isinstance(page, int):
             if page < 0:
                 raise ValueError("Argument 'page' must be a non-negative integer.")
@@ -282,6 +281,18 @@ class TortoiseORMPaginationConnectionExtension(
     def apply(self, field: StrawberryField) -> None:
         field.arguments = [
             *field.arguments,
+            StrawberryArgument(
+                python_name="page",
+                graphql_name=None,
+                type_annotation=StrawberryAnnotation(typing.Optional[int]),
+                default=1,
+            ),
+            StrawberryArgument(
+                python_name="page_size",
+                graphql_name=None,
+                type_annotation=StrawberryAnnotation(typing.Optional[int]),
+                default=10,
+            ),
             StrawberryArgument(
                 python_name="created_at_before",
                 graphql_name=None,
@@ -378,6 +389,8 @@ class TortoiseORMPaginationConnectionExtension(
         source: typing.Any,
         info: Info,
         *,
+        page: typing.Optional[int] = 1,
+        page_size: typing.Optional[int] = 10,
         created_at_before: typing.Optional[datetime.datetime] = None,
         created_at_after: typing.Optional[datetime.datetime] = None,
         updated_at_before: typing.Optional[datetime.datetime] = None,
@@ -394,6 +407,8 @@ class TortoiseORMPaginationConnectionExtension(
         resolved = self.connection_type.resolve_connection(
             typing.cast(typing.Iterable[Node], nodes),
             info=info,
+            page=page,
+            page_size=page_size,
             created_at_before=created_at_before,
             created_at_after=created_at_after,
             updated_at_before=updated_at_before,

@@ -2,12 +2,15 @@
 from contextlib import asynccontextmanager
 
 # Third Party Library
+import orjson
+from blinker import signal
 from fastapi import FastAPI
 from strawberry.fastapi.router import GraphQLRouter
 from tortoise.transactions import in_transaction
 
 # First Library
 from apis import schema
+from common.constants import QUEUE_NAME
 from helpers.decorators import ensure_infra
 from infra import get_infra
 from infra import initialize_infra
@@ -53,14 +56,40 @@ async def initialize_fixtures(app: FastAPI):
                 )
 
 
-async def initialize_eventbus(app: FastAPI):
+async def initialize_signals(app: FastAPI):
+    """
+    import signal handlers
+    """
     # First Library
-    from events import EventBus
-    from events.base import get_event_class
+    import helpers.signals
 
-    eventbus = EventBus(getter=get_event_class)
-    await eventbus.startup()
-    return eventbus
+    infra = get_infra()
+    background_scheduler = await infra.background_scheduler()
+    queue_infra = await infra.queue()
+
+    # TODO: refact needs to be done
+    # make a eventbus manager built with blinker, background scheduler, pubsub, queue
+    # and other infrastructures
+    async def listen_events():
+        try:
+            async with queue_infra.channel_pool.acquire() as channel:
+                queue = await channel.declare_queue(name=QUEUE_NAME, durable=True)
+                message_iterator = queue.iterator()
+                async for message in message_iterator:
+                    try:
+                        data = orjson.loads(message.body)
+                        background_scheduler.run_task_in_process_executor(
+                            signal(data["signal"]).send_async,
+                            kwargs=data["data"],
+                        )
+                        await message.ack()
+                    except Exception as e:
+                        await message.reject()
+                        print(e)
+        except BaseException as e:
+            pass
+
+    background_scheduler.run_task_in_process_executor(listen_events)
 
 
 async def shutdown_eventbus(app: FastAPI, eventbus):
@@ -79,12 +108,10 @@ async def lifespan(app: FastAPI):
     await initialize_graphql_api(app)
     # initialize fixtures
     await initialize_fixtures(app)
-    # initialize eventbus
-    eventbus = await initialize_eventbus(app)
+    # initialize signals
+    await initialize_signals(app)
 
     yield
 
-    # shutdown eventbus
-    await shutdown_eventbus(app, eventbus)
     # shutdown infrastructure container
     await shutdown_infra(app)

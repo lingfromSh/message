@@ -1,4 +1,5 @@
 import http from "k6/http";
+import { randomString } from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 
 const url = "http://localhost:8000/graphql";
 
@@ -9,8 +10,8 @@ export default async function () {
     variables: {
       provider:
         "UHJvdmlkZXJUb3J0b2lzZU5vZGU6MDFISlhCSE1HUU5NQUVaRTFaSDFYSFBBSDQ=",
-      message: "hello,world",
-      contacts: ["01HK2K50Z50HJ812YP83910QDG"],
+      message: { data: "hello,world" + randomString(4), 太棒了: "哈🙂哈哈哈" },
+      contacts: ["01HK7CEMP0MMJA7SJA13MTS1VP"],
     },
     operationName: "MessageSend",
   };

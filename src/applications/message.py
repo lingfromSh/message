@@ -3,7 +3,7 @@ import typing
 
 # Third Party Library
 from tortoise.queryset import QuerySet
-from tortoise.transactions import atomic
+from tortoise.transactions import in_transaction
 from ulid import ULID
 
 # First Library
@@ -54,20 +54,35 @@ class MessageApplication(ApplicationBase[models.Message]):
         if background is True, return message id only and return message id only.
         """
 
-        @atomic("default")
         async def wrapped_create_message(
-            message_id, *, provider, content, users, endpoints, contacts
+            message_id,
+            *,
+            provider,
+            content,
+            users,
+            endpoints,
+            contacts,
+            background_scheduler,
         ):
-            message = await self.repository.create(
-                id=message_id,
-                provider=provider,
-                content=content,
-                contacts=contacts,
-            )
-            if users:
-                await message.add_users(*users)
-            if endpoints:
-                await message.add_endpoints(*endpoints)
+            message = None
+            async with in_transaction("default"):
+                message = await self.repository.create(
+                    id=message_id,
+                    provider=provider,
+                    content=content,
+                    contacts=contacts,
+                )
+                await message.mark_as_pending()
+                if users:
+                    await message.add_users(*users)
+                if endpoints:
+                    await message.add_endpoints(*endpoints)
+
+            if message:
+                background_scheduler.run_task_in_async_executor(
+                    message.created.send_async,
+                    args=(message,),
+                )
             return message
 
         if background:
@@ -82,6 +97,7 @@ class MessageApplication(ApplicationBase[models.Message]):
                     "contacts": contacts,
                     "users": users,
                     "endpoints": endpoints,
+                    "background_scheduler": background_scheduler,
                 },
             )
             return message_id
@@ -92,4 +108,5 @@ class MessageApplication(ApplicationBase[models.Message]):
                 message,
                 users,
                 endpoints,
+                background_scheduler,
             )

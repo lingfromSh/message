@@ -1,4 +1,5 @@
 # Third Party Library
+from blinker import signal
 from tortoise.timezone import now
 from ulid import ULID
 
@@ -8,9 +9,11 @@ from common.constants import MessageStatusEnum
 
 
 class MessageMixin:
+    created = signal("message.created")
+
     @classmethod
     async def from_id(cls, id: ULID):
-        domain = await cls.get_or_none(id=id)
+        domain = await cls.get_or_none(id=id).prefetch_related("provider")
         if domain is None:
             raise exceptions.MessageNotFoundError
         return domain

@@ -56,6 +56,10 @@ assertpy = "^1.1"
 [tool.poetry.group.dev.dependencies]
 memray = "^1.11.0"
 
+
+[tool.poetry.group.prod.dependencies]
+supervisor = "^4.2.5"
+
 [tool.isort]
 profile = "black"
 src_paths = ["src"]

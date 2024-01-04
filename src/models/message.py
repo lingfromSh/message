@@ -1,6 +1,5 @@
 # Third Party Library
 from tortoise import fields
-from tortoise.signals import post_save
 
 # First Library
 import mixins
@@ -29,17 +28,3 @@ class Message(mixins.MessageMixin, BaseModel):
 
     class Meta:
         table = "messages"
-
-
-@post_save(Message)
-async def on_message_create(
-    sender: Message,
-    instance: Message,
-    created,
-    *args,
-    **kwargs,
-):
-    if not created:
-        return
-
-    await instance.provider.send_message(instance)

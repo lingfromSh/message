@@ -1,7 +1,9 @@
 # Standard Library
+import asyncio
 import typing
 
 # Third Party Library
+from blinker import signal
 from tortoise import Model
 from tortoise.transactions import atomic
 from ulid import ULID
@@ -10,10 +12,11 @@ from ulid import ULID
 import applications
 import exceptions
 import providers
-from events.message import MessageBroadcastEvent
 
 
 class ProviderMixin:
+    new_message = signal("provider.new_message")
+
     @classmethod
     async def from_id(cls, id: ULID) -> typing.Self:
         """
@@ -155,14 +158,8 @@ class ProviderMixin:
 
         return task id
         """
-        if self.provider.name == "websocket":
-            event = MessageBroadcastEvent(
-                provider_code=self.provider.name,
-                message=message.content,
-                users=[],
-                endpoints=[],
-                contacts=message.contacts,
-            )
-            await event.emit()
-        else:
-            await self.provider._send(message)
+
+        await message.mark_as_scheduled()
+        await message.mark_as_sending()
+        await self.provider._send(message)
+        await message.mark_as_succeeded()

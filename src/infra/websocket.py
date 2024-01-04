@@ -8,6 +8,7 @@ from contextlib import suppress
 import backoff
 import orjson
 from fastapi import WebSocket
+from fastapi import WebSocketDisconnect
 from ulid import ULID
 
 # First Library
@@ -16,8 +17,27 @@ from infra.abc import HealthStatus
 from infra.abc import Infrastructure
 
 
-async def print_close_connection_id(id):
-    ...
+@backoff.on_exception(backoff.expo, Exception)
+async def increase_connection_count():
+    # First Library
+    from infra import get_infra
+
+    infra = get_infra()
+    cache = await infra.cache()
+    await cache.redis.incr("connection")
+
+
+@backoff.on_exception(backoff.expo, Exception)
+async def decrease_connection_count():
+    # First Library
+    from infra import get_infra
+
+    infra = get_infra()
+    cache = await infra.cache()
+    await cache.redis.decr("connection")
+
+
+# TODO: impl a broadcast method
 
 
 class WebsocketConnection:
@@ -42,12 +62,16 @@ class WebsocketConnection:
         self.close_event = asyncio.Event()
 
     async def send(self, message):
-        try:
-            message = orjson.dumps(message).decode()
+        if isinstance(message, (str, int, float, bool)):
             send_method = self.websocket.send_text
-        except orjson.JSONDecodeError:
-            message = message
-            send_method = self.websocket.send_json
+        elif isinstance(message, bytes):
+            send_method = self.websocket.send_bytes
+        else:
+            try:
+                message = orjson.dumps(message).decode()
+                send_method = self.websocket.send_text
+            except orjson.JSONDecodeError:
+                send_method = self.websocket.send_json
 
         with suppress(BaseException):
             await send_method(message)
@@ -70,16 +94,16 @@ class WebsocketConnection:
         self.recv_task = asyncio.create_task(task())
 
     async def keep_alive(self):
-        async for data in self.websocket.iter_text():
-            try:
-                data = orjson.loads(data)
-            except orjson.JSONDecodeError:
-                pass
-            try:
-                await self.recv_queue.put(data)
-            except Exception as e:
-                print(e)
-        self.close_event.set()
+        with suppress(WebSocketDisconnect):
+            async for data in self.websocket.iter_text():
+                try:
+                    data = orjson.loads(data)
+                except orjson.JSONDecodeError:
+                    pass
+                try:
+                    await self.recv_queue.put(data)
+                except Exception as e:
+                    print(e)
 
     async def send_welcome(self):
         await self.send({"type": "welcome", "id": self.id})
@@ -96,7 +120,7 @@ class WebsocketConnection:
             )
         self.close_event.set()
         await self.recv_queue.put(self.TERMINATE)
-        return self.recv_task.done() and await self.close_event.wait()
+        return await self.close_event.wait() and self.recv_task.done()
 
     def __del__(self):
         del self.id
@@ -108,6 +132,9 @@ class WebsocketConnection:
 
 
 class WebsocketInfrastructure(Infrastructure):
+    TERMINATE = "terminate#"
+    REMOTE_CHANNEL = "websocketremote_channel#"
+
     def __init__(self):
         self.write_lock = asyncio.Lock()
         self.connections = {}
@@ -130,11 +157,30 @@ class WebsocketInfrastructure(Infrastructure):
             ],
         )
 
-    async def init(self, background_scheduler) -> Infrastructure:
+    async def start_listen_remote_message(self):
+        async for message in await self.distribution.subscribe(self.REMOTE_CHANNEL):
+            if message["type"] == "message":
+                data = message["data"]
+                try:
+                    data = orjson.loads(data)
+                    if data["sender"] == self.id:
+                        continue
+                    await self.local_send(
+                        data["message"],
+                        connection_ids=data["connection_ids"],
+                    )
+                except Exception as err:
+                    print(err)
+
+    async def init(self, background_scheduler, distribution) -> Infrastructure:
+        self.id = str(ULID())
         self.background_scheduler = background_scheduler
+        self.distribution = distribution
+        self.background_task = asyncio.create_task(self.start_listen_remote_message())
         return self
 
     async def shutdown(self, resource: Infrastructure):
+        self.background_task.cancel()
         for connection in self.connections.values():
             await connection.shutdown()
         self.connections.clear()
@@ -144,6 +190,7 @@ class WebsocketInfrastructure(Infrastructure):
         add connection to connections
         """
         # TODO: add some background tasks
+        await increase_connection_count()
         connection_id = self.generate_id()
         try:
             async with self.write_lock:
@@ -157,21 +204,36 @@ class WebsocketInfrastructure(Infrastructure):
         return self.connections[connection_id]
 
     async def remove_connection(self, connection: WebsocketConnection):
+        await decrease_connection_count()
         await connection.shutdown()
         del self.connections[connection.id]
         del connection
 
-    async def send(self, message, connection_ids) -> typing.List[bool]:
-        results = []
+    async def local_send(self, message, connection_ids) -> typing.List[bool]:
+        ret = []
         for connection_id in connection_ids:
             connection = self.connections.get(connection_id)
             if connection:
                 try:
                     await connection.send(message)
-                    results.append(True)
+                    ret.append(True)
                 except Exception as err:
-                    results.append(False)
+                    ret.append(False)
             else:
-                results.append(False)
+                ret.append(False)
+        return ret
+
+    async def remote_send(self, message, connection_ids) -> typing.List[bool]:
+        data = {"sender": self.id, "message": message, "connection_ids": connection_ids}
+        await self.distribution.publish(self.REMOTE_CHANNEL, data)
+
+    async def send(self, message, connection_ids) -> typing.List[bool]:
+        reachable = list(filter(lambda x: x in self.connections, connection_ids))
+        unreachable = list(filter(lambda x: x not in self.connections, connection_ids))
+        results = []
+
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.local_send(message, reachable))
+            tg.create_task(self.remote_send(message, unreachable))
 
         return results

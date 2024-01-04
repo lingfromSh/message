@@ -10,6 +10,7 @@ from dependency_injector.containers import DeclarativeContainer
 from common.constants import SETTINGS_YAML
 from infra.background import BackgroundSchedulerInfrastructure
 from infra.cache import CacheInfrastructure
+from infra.distirbution import DistributionInfrastructure
 from infra.persistence import PersistenceInfrastructure
 from infra.queue import QueueInfrastructure
 from infra.storage import StorageInfrastructure
@@ -54,11 +55,19 @@ class InfrastructureContainer(DeclarativeContainer):
         options=config.storage.options,
     )
 
+    distribution: typing.Callable[
+        [], typing.Awaitable[DistributionInfrastructure]
+    ] = providers.Resource(
+        DistributionInfrastructure,
+        cache=cache,
+    )
+
     websocket: typing.Callable[
         [], typing.Awaitable[WebsocketInfrastructure]
     ] = providers.Resource(
         WebsocketInfrastructure,
         background_scheduler=background_scheduler,
+        distribution=distribution,
     )
 
 
