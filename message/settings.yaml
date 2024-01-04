@@ -1,5 +1,5 @@
 persistence:
-  dsn: postgres://pgadmin:pgpassword@localhost:5432/message
+  dsn: postgres://pgadmin:pgpassword@localhost:6432/message
 
 cache:
   dsn: redis://localhost:6379/

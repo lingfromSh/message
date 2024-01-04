@@ -23,3 +23,18 @@ services:
     restart: always
     profiles:
       - "standalone"
+
+  pgbouncer:
+    container_name: pgbouncer
+    image: bitnami/pgbouncer:latest
+    ports:
+      - "6432:6432"
+    restart: always
+    environment:
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - PGBOUNCER_DATABASE=${POSTGRES_DB}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB}
+      - POSTGRESQL_HOST=postgres
+    profiles:
+      - "standalone"
