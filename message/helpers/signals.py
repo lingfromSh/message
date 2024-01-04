@@ -34,11 +34,32 @@ async def background_create_message(
     Create message
     """
     message_application = applications.MessageApplication()
+    user_application = applications.UserApplication()
+    endpoint_application = applications.EndpointApplication()
     provider_application = applications.ProviderApplication()
     try:
         provider = await provider_application.get_provider(id=provider_id)
     except Exception:
         raise
+
+    if users:
+        try:
+            users = await (
+                await user_application.get_users(conditions={"id__in": users})
+            )
+        except Exception:
+            raise
+
+    if endpoints:
+        try:
+            endpoints = await (
+                await endpoint_application.get_endpoints(
+                    conditions={"id__in": endpoints}
+                )
+            )
+        except Exception:
+            raise
+
     message = await message_application.create_message(
         id=message_id,
         provider=provider,

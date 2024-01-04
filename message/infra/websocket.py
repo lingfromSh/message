@@ -200,8 +200,10 @@ class WebsocketInfrastructure(Infrastructure):
         await self.distribution.publish(self.REMOTE_CHANNEL, data)
 
     async def send(self, message, connection_ids) -> typing.List[bool]:
-        reachable = list(filter(lambda x: x in self.connections, connection_ids))
-        unreachable = list(filter(lambda x: x not in self.connections, connection_ids))
+        reachable = list(set(filter(lambda x: x in self.connections, connection_ids)))
+        unreachable = list(
+            set(filter(lambda x: x not in self.connections, connection_ids))
+        )
         results = []
 
         async with asyncio.TaskGroup() as tg:

@@ -51,6 +51,11 @@ class Mutation:
         endpoints: typing.Optional[typing.List[UserEndpointAddInput]] = None,
     ) -> UserTortoiseORMNode:
         application = applications.UserApplication()
+        if metadata is None:
+            metadata = {}
+        if endpoints is None:
+            endpoints = []
+
         created = await application.create_user(
             external_id=external_id,
             metadata=metadata,

@@ -76,6 +76,9 @@ class MessageApplication(ApplicationBase[models.Message]):
         endpoints=None,
         contacts=None,
     ) -> models.Message:
+        if contacts is None:
+            contacts = []
+
         message = await self.repository.create(
             id=id,
             provider=provider,
