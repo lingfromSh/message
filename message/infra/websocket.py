@@ -164,8 +164,6 @@ class WebsocketInfrastructure(Infrastructure):
         """
         add connection to connections
         """
-        # TODO: add some background tasks
-        await increase_connection_count()
         connection_id = self.generate_id()
         try:
             async with self.write_lock:
@@ -179,7 +177,6 @@ class WebsocketInfrastructure(Infrastructure):
         return self.connections[connection_id]
 
     async def remove_connection(self, connection: WebsocketConnection):
-        await decrease_connection_count()
         await connection.shutdown()
         del self.connections[connection.id]
         del connection
