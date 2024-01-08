@@ -29,7 +29,10 @@ class ProviderBase(metaclass=ABCMeta):
 
     def __init__(self, parameters: "parameter_definition"):
         self.infra = get_infra()
-        self.parameters = parameters
+        if self.parameter_definition:
+            self.parameters = self.parameter_definition.model_validate(parameters)
+        else:
+            self.parameters = parameters
 
     def __init_subclass__(cls) -> None:
         global __registry__
@@ -71,8 +74,29 @@ class ProviderBase(metaclass=ABCMeta):
         Message validation.
         """
         if self.message_definition:
-            return self.message_definition.model_validate(message)
+            if isinstance(message, str):
+                return self.message_definition.model_validate_json(message)
+            else:
+                return self.message_definition.model_validate(message)
         return None
+
+    def validate_contacts(self, contacts: typing.List[typing.Any]):
+        """
+        Validate contacts.
+        """
+        if not contacts:
+            return []
+        if not self.supported_contacts:
+            return []
+        validated_contacts = []
+        for contact in contacts:
+            for contact_schema in self.supported_contacts:
+                try:
+                    contact_schema.__pydantic_model__.model_validate(contact)
+                    validated_contacts.append(contact)
+                except Exception:
+                    continue
+        return validated_contacts
 
     async def send(self, message):
         """

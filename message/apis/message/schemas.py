@@ -55,12 +55,9 @@ class Mutation:
         endpoints: typing.Optional[typing.List[relay.GlobalID]] = None,
         contacts: typing.Optional[typing.List[strawberry.scalars.JSON]] = None,
     ) -> str:
-        if all([users is None, endpoints is None, contacts is None]):
-            raise exceptions.MessageSendRequiredReceiversError
         message_application = applications.MessageApplication()
-
         message_id = await message_application.send_message(
-            provider=provider.node_id,
+            provider_id=provider.node_id,
             content=orjson.dumps(content).decode(),
             users=[user.node_id for user in users] if users else [],
             endpoints=[endpoint.node_id for endpoint in endpoints] if endpoints else [],

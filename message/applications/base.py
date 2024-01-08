@@ -25,7 +25,7 @@ class ApplicationBase(typing.Generic[T]):
         return cls
 
     def other(
-        self, name: typing.Literal["contact", "endpoint", "user", "provider"]
+        self, name: typing.Literal["contact", "endpoint", "user", "provider", "message"]
     ) -> "ApplicationBase":
         return ApplicationBase.__registry__[name]()
 

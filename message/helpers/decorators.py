@@ -17,6 +17,7 @@ def contact_schema(code: ContactEnum):
 
     def wrapper(cls):
         ContactMixin.register_schema(code, schema=cls)
+        code.__pydantic_model__ = cls
         return cls
 
     return wrapper

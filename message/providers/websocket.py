@@ -35,7 +35,7 @@ class WebsocketProvider(ProviderBase):
 
     async def send(self, message):
         validated = self.message_definition.model_validate_json(message.content).root
-        connection_ids = message.contacts or []
+        connection_ids = [contact["connection"] for contact in message.contacts] or []
         endpoint_application = applications.EndpointApplication()
         async for endpoint in (
             await endpoint_application.get_endpoints(

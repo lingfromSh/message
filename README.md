@@ -1,24 +1,28 @@
 # Message
 
+> I want to provider a general message notification system, which can be used in any project.
+
 A general message notification system
 
 ## Features
 
-1. websocket/email providers support
-2. pure async/await implement with FastAPI
-3. extensible, only need add providers
-4. scalable
+1. pure async/await implement with FastAPI
+2. extensible, only need add providers
+3. scalable
 
 ## Dependencies
 
 - PostgresQL
 - RabbitMQ
 - Redis
-- Prefect
 
-## System Design
+## Framework
 
-- FastAPI
+- fastapi
+- tortoise-orm
+- pydantic
+- taskiq
+- apprise (support tons of notification services) amazing lib
 
 ## Development
 

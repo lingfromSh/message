@@ -10,6 +10,7 @@ class ContactEnum(enum.Enum):
     EMAIL = "email"
     MOBILE = "mobile"
     WEBSOCKET = "websocket"
+    FEISHU = "feishu"
 
 
 class MessageStatusEnum(enum.Enum):
