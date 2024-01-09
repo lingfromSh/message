@@ -2650,6 +2650,21 @@ uv = ["uvloop (>=0.16.0,<1)"]
 zmq = ["pyzmq (>=23.2.0,<24.0.0)"]
 
 [[package]]
+name = "taskiq-aio-pika"
+version = "0.4.0"
+description = "RabbitMQ broker for taskiq"
+optional = false
+python-versions = ">=3.8.1,<4.0.0"
+files = [
+    {file = "taskiq_aio_pika-0.4.0-py3-none-any.whl", hash = "sha256:3d96acf8ee5d9170bdc3f726b7a2f9d29f58e0fbc760fb13a50f40eeaa1368a3"},
+    {file = "taskiq_aio_pika-0.4.0.tar.gz", hash = "sha256:9295e911ad2c808e10571adee262dcfe51344a2aebba0fbc89249e666bbe44a1"},
+]
+
+[package.dependencies]
+aio-pika = ">=9.0,<10.0"
+taskiq = ">=0.6.0,<1"
+
+[[package]]
 name = "taskiq-dependencies"
 version = "1.5.0"
 description = "FastAPI like dependency injection implementation"
@@ -3247,4 +3262,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<=3.13"
-content-hash = "32c96798aa0fd9beed251dc982c389de317f91b8d2ab3e11e86d20dc0445b436"
+content-hash = "3d84b7b89b6ed7b4a77b5fd17ec3057fbb752f8769faa3ef72c7e489f9d1f153"

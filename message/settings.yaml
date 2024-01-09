@@ -6,6 +6,7 @@ cache:
 
 queue:
   dsn: amqp://rbadmin:rbpassword@localhost:5672/
+  prefecth_count: 100
 
 storage:
   mode: local
