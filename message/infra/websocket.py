@@ -97,14 +97,6 @@ class WebsocketConnection:
         await self.recv_queue.put(self.TERMINATE)
         return await self.close_event.wait() and self.recv_task.done()
 
-    def __del__(self):
-        del self.id
-        del self.websocket
-        del self.recv_task
-        del self.recv_queue
-        del self.close_event
-        del self.listeners
-
 
 class WebsocketInfrastructure(Infrastructure):
     TERMINATE = "terminate#"
@@ -178,8 +170,7 @@ class WebsocketInfrastructure(Infrastructure):
 
     async def remove_connection(self, connection: WebsocketConnection):
         await connection.shutdown()
-        del self.connections[connection.id]
-        del connection
+        self.connections.pop(connection.id, None)
 
     async def local_send(self, message, connection_ids) -> typing.List[bool]:
         ret = []
