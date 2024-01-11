@@ -9,6 +9,7 @@ from message.common.graphql.relay import connection
 from strawberry import relay
 
 # Local Folder
+from .objecttypes import ProviderCodeEnum
 from .objecttypes import ProviderTortoiseORMNode
 
 
@@ -37,7 +38,7 @@ class Mutation:
     @strawberry.mutation(description="Create provider")
     async def provider_create(
         self,
-        code: str,
+        code: strawberry.enum(ProviderCodeEnum),
         name: str,
         description: typing.Optional[str] = None,
         params: typing.Optional[strawberry.scalars.JSON] = None,
@@ -45,7 +46,7 @@ class Mutation:
         application = applications.ProviderApplication()
         provider = await application.create_provider(
             name=name,
-            code=code,
+            code=code.value if code else None,
             description=description,
             params=params,
         )
@@ -55,7 +56,7 @@ class Mutation:
     async def provider_update(
         self,
         id: relay.GlobalID,
-        code: typing.Optional[str] = None,
+        code: typing.Optional[strawberry.enum(ProviderCodeEnum)] = None,
         name: typing.Optional[str] = None,
         description: typing.Optional[str] = None,
         params: typing.Optional[strawberry.scalars.JSON] = None,
@@ -65,7 +66,7 @@ class Mutation:
         await application.update_provider(
             provider,
             name=name,
-            code=code,
+            code=code.value if code else None,
             description=description,
             params=params,
         )

@@ -107,7 +107,7 @@ class ContactMixin:
 
     @classmethod
     def register_schema(cls, code: ContactEnum, schema: BaseModel):
-        if code in cls._contact_pydantic_models_:
+        if code.value in cls._contact_pydantic_models_:
             raise exceptions.ContactSchemaAlreadyRegisteredError
         cls._contact_pydantic_models_[code.value] = schema
 

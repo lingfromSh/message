@@ -5,7 +5,6 @@ from asyncio.queues import Queue
 from contextlib import suppress
 
 # Third Party Library
-import backoff
 import orjson
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect

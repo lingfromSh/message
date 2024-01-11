@@ -79,6 +79,13 @@ class ProviderMixin:
             raise exceptions.ProviderCodeNotFoundError
         return __registry__[code]
 
+    @classmethod
+    def get_provider_codes(cls):
+        # Third Party Library
+        from message.providers.abc import __registry__
+
+        return list(__registry__.keys())
+
     @property
     def provider(self):
         return self.get_provider_cls(self.code)(parameters=self.params)
@@ -91,7 +98,7 @@ class ProviderMixin:
     def validate_params(cls, provider_cls, params):
         validated = provider_cls.validate_parameters(params)
         if validated is not None:
-            return validated.model_dump()
+            return validated.model_dump(exclude_none=True, exclude_defaults=True)
         return {}
 
     @atomic("default")
