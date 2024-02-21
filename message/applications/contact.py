@@ -5,21 +5,18 @@ from contextlib import suppress
 # Third Party Library
 from message import exceptions
 from message import models
-from message.applications.base import ApplicationBase
+from message.applications.base import Application
 from message.helpers.decorators import ensure_infra
 from tortoise.timezone import now
 from tortoise.transactions import in_transaction
 from ulid import ULID
 
 
-class ContactApplication(ApplicationBase[models.Contact]):
-    def __init__(
-        self, repository: typing.Type[models.Contact] = models.Contact
-    ) -> None:
-        self.repository = repository
+class ContactApplication(Application):
+    REPOSITORY = typing.Type[models.Contact]
+    DOMAIN = models.Contact
 
-    @ensure_infra("persistence")
-    async def get_contacts(
+    def get_contacts(
         self,
         conditions: typing.Dict = None,
         *,
@@ -27,8 +24,8 @@ class ContactApplication(ApplicationBase[models.Contact]):
         limit: typing.Optional[int] = None,
         order_by: typing.List[str] = None,
         for_update: bool = False,
-    ) -> typing.AsyncIterable[models.Contact]:
-        return await super().get_objs(
+    ) -> typing.AsyncIterable[DOMAIN]:
+        return super().get_domains(
             conditions=conditions,
             offset=offset,
             limit=limit,
@@ -37,12 +34,16 @@ class ContactApplication(ApplicationBase[models.Contact]):
         )
 
     @ensure_infra("persistence")
-    async def get_contact(self, id: ULID) -> typing.Optional[models.Contact]:
-        return await super().get_obj(id)
+    async def get_contact(self, id: ULID) -> DOMAIN:
+        if domain := await super().get_domain(id):
+            return domain
+        raise exceptions.ContactNotFoundError
 
     @ensure_infra("persistence")
-    async def get_contact_by_code(self, code: str) -> typing.Optional[models.Contact]:
-        return await self.repository.from_code(code=code)
+    async def get_contact_by_code(self, code: str) -> DOMAIN:
+        if domain := await self.repository.get_or_none(code=code, is_deleted=False):
+            return domain
+        raise exceptions.ContactNotFoundError
 
     @ensure_infra("persistence")
     async def create_contact(
@@ -52,7 +53,7 @@ class ContactApplication(ApplicationBase[models.Contact]):
         definition: typing.Dict,
         description: typing.Optional[str] = None,
         from_api: bool = False,
-    ) -> models.Contact:
+    ) -> DOMAIN:
         code = code.lower()
         if await self.repository.active_objects.filter(code=code).exists():
             raise exceptions.ContactDuplicatedCodeError
@@ -70,12 +71,12 @@ class ContactApplication(ApplicationBase[models.Contact]):
     @ensure_infra("persistence")
     async def update_contact(
         self,
-        contact: models.Contact,
+        contact: DOMAIN,
         name: typing.Optional[str] = None,
         code: typing.Optional[str] = None,
         description: typing.Optional[str] = None,
         definition: typing.Optional[typing.Dict] = None,
-    ) -> models.Contact:
+    ) -> DOMAIN:
         if name is not None:
             await contact.set_name(name, save=False)
         if code is not None:
@@ -96,18 +97,6 @@ class ContactApplication(ApplicationBase[models.Contact]):
         return contact
 
     @ensure_infra("persistence")
-    async def destroy_contacts(
-        self, *ids: typing.List[ULID]
-    ) -> typing.Literal["ok", "error"]:
-        with suppress(Exception):
-            async with in_transaction():
-                await self.repository.active_objects.select_for_update().filter(
-                    id__in=ids
-                ).update(is_deleted=True, deleted_at=now())
-                return "ok"
-        return "error"
-
-    @ensure_infra("persistence")
     async def update_contacts(
         self,
         contacts: typing.List[models.Contact],
@@ -119,3 +108,15 @@ class ContactApplication(ApplicationBase[models.Contact]):
             fields=fields,
             batch_size=batch_size,
         )
+
+    @ensure_infra("persistence")
+    async def destroy_contacts(
+        self, *ids: typing.List[ULID]
+    ) -> typing.Literal["ok", "error"]:
+        with suppress(Exception):
+            async with in_transaction():
+                await self.repository.active_objects.select_for_update().filter(
+                    id__in=ids
+                ).update(is_deleted=True, deleted_at=now())
+                return "ok"
+        return "error"

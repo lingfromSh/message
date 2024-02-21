@@ -15,9 +15,10 @@ from pydantic import field_validator
 # Local Folder
 from .abc import ProviderBase
 
-apprise_providers = []
-manager = NotificationManager()
-for plugin in manager.plugins(include_disabled=False):
+converter = {}
+
+
+def convert(plugin):
     # NOTE: apprise can handle dict url params, so we don't need care about map_to.
     protocol = plugin.protocol
     secure_protocol = plugin.secure_protocol
@@ -137,4 +138,26 @@ for plugin in manager.plugins(include_disabled=False):
             ),
         },
     )
-    apprise_providers.append(newcls)
+
+
+def apprise_provider_converter(service_name: str):
+    def wrapper(func):
+        def wrapper_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+def get_apprise_provider_converter(service_name: str):
+    return converter.get(service_name, convert)
+
+
+apprise_providers = []
+manager = NotificationManager()
+for plugin in manager.plugins(include_disabled=False):
+    converter = get_apprise_provider_converter(service_name=plugin.service_name)
+    provider = converter(plugin)
+    apprise_providers.append(provider)
+
+# 如何解决target的转换成pydantic可以校验的类型
+# 如何解决apprise里不同provider但是共享target的情况

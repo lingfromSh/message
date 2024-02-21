@@ -2,7 +2,6 @@
 import enum
 
 # Third Party Library
-import strawberry
 from message import models
 from message.common.graphql.relay import TortoiseORMNode
 

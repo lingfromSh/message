@@ -14,7 +14,7 @@ from pydantic import model_validator
 from tortoise import Model
 from ulid import ULID
 
-ValidateResult = namedtuple("ValidateResult", ["valid", "validated_data"])
+ValidationResult = namedtuple("ValidationResult", ["valid", "validated_data"])
 
 
 class ContactDefinitionModel(BaseModel):
@@ -44,18 +44,19 @@ class ContactDefinitionModel(BaseModel):
             self.check_pydantic_schema()
         return self
 
-    def validate_contact(self, contact: typing.Any) -> ValidateResult:
-        # REFRACTOR: more clear logic with one try-catch
+    def validate_contact(self, contact: typing.Any) -> ValidationResult:
         if self.type == "jsonschema":
             with suppress(jsonschema.ValidationError):
                 jsonschema.validate(contact, self.contact_schema)
-                return ValidateResult(valid=True, validated_data=contact)
+                return ValidationResult(valid=True, validated_data=contact)
         elif self.type == "pydantic":
             with suppress(pydantic.ValidationError):
                 pydantic_schema_model = self.get_pydantic_schema_model()
                 validated = pydantic_schema_model.model_validate(contact)
-                return ValidateResult(valid=True, validated_data=validated.model_dump())
-        return ValidateResult(valid=False, validated_data=None)
+                return ValidationResult(
+                    valid=True, validated_data=validated.model_dump()
+                )
+        return ValidationResult(valid=False, validated_data=None)
 
 
 class ContactMixin:
@@ -136,6 +137,12 @@ class ContactMixin:
             raise exceptions.ContactDuplicatedCodeError
         return code
 
+    async def validate_contact(self, contact: typing.Any) -> ValidationResult:
+        """
+        Validate contact
+        """
+        return self.contact_schema.validate_contact(contact)
+
     async def set_definition(
         self, definition: typing.Dict[str, typing.Any], save: bool = True
     ):
@@ -184,6 +191,3 @@ class ContactMixin:
             await self.db.update(description=description)
         else:
             self.description = description
-
-    async def validate_contact(self, contact: typing.Any) -> ValidateResult:
-        return self.contact_schema.validate_contact(contact)

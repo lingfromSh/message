@@ -3,33 +3,43 @@ import typing
 from contextlib import suppress
 
 # Third Party Library
-from message.infra import get_infra
+from message.helpers.decorators import ensure_infra
+from message.helpers.metaclasses import Singleton
 from tortoise import Model
 from tortoise.queryset import QuerySet
 from tortoise.timezone import now
+from tortoise.transactions import in_transaction
 from ulid import ULID
 
-T = typing.TypeVar("T", bound=Model)
+if typing.TYPE_CHECKING:
+    # Third Party Library
+    from infra import InfrastructureContainer
+
+Repository = typing.TypeVar("Repository", bound=Model)
 
 
-class ApplicationBase(typing.Generic[T]):
-    __registry__ = {}
+class Application(metaclass=Singleton):
+    """
+    Base class of Application
 
-    def __init__(self, repository: T = T):
-        self.repository: T = repository
-        self.infra = get_infra()
+    Application provides methods for controling domain models.
+    """
+
+    _registry_ = {}
+    REPOSITORY: typing.Type[Repository] = NotImplemented
+    DOMAIN: Repository = NotImplemented
+
+    def __init__(self, infra):
+        self.infra = infra
 
     def __init_subclass__(cls) -> None:
-        clsname = cls.__name__.replace("Application", "").lower()
-        ApplicationBase.__registry__[clsname] = cls
-        return cls
+        assert cls.REPOSITORY is not NotImplemented, "repository must be set"
 
-    def other(
-        self, name: typing.Literal["contact", "endpoint", "user", "provider", "message"]
-    ) -> "ApplicationBase":
-        return ApplicationBase.__registry__[name]()
+    @property
+    def transaction(self):
+        return in_transaction(self.REPOSITORY._meta.default_connection)
 
-    async def get_objs(
+    def get_domains(
         self,
         conditions: typing.Dict = None,
         *,
@@ -37,7 +47,7 @@ class ApplicationBase(typing.Generic[T]):
         limit: typing.Optional[int] = None,
         order_by: typing.List[str] = None,
         for_update: bool = False,
-    ) -> QuerySet[T]:
+    ) -> QuerySet[Repository]:
         qs = self.repository.active_objects.filter(**conditions)
         if offset is not None:
             qs = qs.offset(offset)
@@ -49,10 +59,80 @@ class ApplicationBase(typing.Generic[T]):
             qs = qs.select_for_update()
         return qs
 
-    async def get_obj(self, id: ULID) -> typing.Optional[T]:
-        return await self.repository.from_id(id=id)
+    def get_domains_by_ids(
+        self,
+        *ids: typing.List[ULID],
+        order_by: typing.List[str] = None,
+        for_update: bool = False,
+    ):
+        """
+        a quick way to get objects by ids
+        """
+        return self.get_objs(
+            conditions={"pk__in": ids},
+            order_by=order_by,
+            for_update=for_update,
+        )
 
-    async def destory_objs(
+    def construct_domain(self, **kwargs) -> Repository:
+        return self.repository(**kwargs)
+
+    @ensure_infra("persistence")
+    async def get_domain(
+        self, id: ULID, raise_exceptions: bool = False
+    ) -> typing.Optional[Repository]:
+        try:
+            return await self.repository.from_id(id=id)
+        except Exception as err:
+            if raise_exceptions:
+                raise err
+            return None
+
+    @ensure_infra("persistence")
+    async def create_domain(
+        self,
+        **kwargs,
+    ) -> Repository:
+        """
+        use create to insert domains quickly
+        """
+        return await self.repository.create(**kwargs)
+
+    @ensure_infra("persistence")
+    async def update_domain(
+        self,
+        *ids: typing.List[ULID],
+        **kwargs,
+    ) -> None:
+        """
+        use update to update domains
+        """
+        qs = self.get_objs_by_ids(*ids, for_update=True)
+        await qs.update(**kwargs)
+
+    @ensure_infra("persistence")
+    async def bulk_create_domains(
+        self,
+        domains: typing.List[Repository],
+    ):
+        """
+        use bulk create to insert domains quickly
+        """
+        await self.repository.bulk_create(domains)
+
+    @ensure_infra("persistence")
+    async def bulk_update_domains(
+        self,
+        domains: typing.List[Repository],
+        update_fields: typing.List[str],
+    ):
+        """
+        use bulk update to update domains quickly
+        """
+        await self.repository.bulk_update(domains, fields=update_fields)
+
+    @ensure_infra("persistence")
+    async def destory_domains(
         self,
         *ids: typing.List[ULID],
         real: bool = False,

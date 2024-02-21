@@ -10,10 +10,10 @@ from tortoise.transactions import atomic
 from ulid import ULID
 
 # Local Folder
-from .base import ApplicationBase
+from .base import Application
 
 
-class ProviderApplication(ApplicationBase[models.Provider]):
+class ProviderApplication(Application[models.Provider]):
     def __init__(self, repository: models.Provider = models.Provider):
         super().__init__(repository)
 
@@ -37,7 +37,7 @@ class ProviderApplication(ApplicationBase[models.Provider]):
 
     @ensure_infra("persistence")
     async def get_provider(self, id: ULID) -> models.Provider:
-        return await self.repository.from_id(id=id)
+        return await super().get_domain(id=id)
 
     @ensure_infra("persistence")
     @atomic("default")
@@ -87,6 +87,7 @@ class ProviderApplication(ApplicationBase[models.Provider]):
         return provider
 
     @backoff.on_exception(backoff.expo, Exception, max_tries=5)
+    @ensure_infra("queue")
     @ensure_infra("persistence")
     async def send_message(
         self,

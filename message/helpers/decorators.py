@@ -44,4 +44,13 @@ def ensure_infra(*infra_names: list[str], raise_exceptions: bool = True):
 
             return wrapped
 
+        else:
+
+            @wraps(func)
+            async def wrapped(*args, **kwargs):
+                if await infra_check(*infra_names, raise_exceptions=raise_exceptions):
+                    return func(*args, **kwargs)
+
+            return wrapped
+
     return wrapper

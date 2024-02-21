@@ -10,10 +10,10 @@ from tortoise.transactions import in_transaction
 from ulid import ULID
 
 # Local Folder
-from .base import ApplicationBase
+from .base import Application
 
 
-class UserApplication(ApplicationBase[models.User]):
+class UserApplication(Application[models.User]):
     def __init__(self, repository: typing.Type[models.User] = models.User):
         self.repository: typing.Type[models.User] = repository
 

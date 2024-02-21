@@ -5,20 +5,16 @@ import typing
 from message import exceptions
 from message import models
 from message.helpers.decorators import ensure_infra
+from tortoise.exceptions import DoesNotExist
 from tortoise.queryset import QuerySet
 from ulid import ULID
 
 # Local Folder
-from .base import ApplicationBase
+from .base import Application
 
 
-class EndpointApplication(ApplicationBase[models.Endpoint]):
-    def __init__(self, repository: models.Endpoint = models.Endpoint):
-        super().__init__(repository)
-
-    # TODO: make this function sync
-    @ensure_infra("persistence")
-    async def get_endpoints(
+class EndpointApplication(Application[models.Endpoint], repository=models.Endpoint):
+    def get_endpoints(
         self,
         conditions: typing.Dict = None,
         *,
@@ -27,7 +23,7 @@ class EndpointApplication(ApplicationBase[models.Endpoint]):
         order_by: typing.List[str] = None,
         for_update: bool = False,
     ) -> QuerySet[models.Endpoint]:
-        return await self.get_objs(
+        return self.get_domains(
             conditions,
             offset=offset,
             limit=limit,
@@ -35,25 +31,22 @@ class EndpointApplication(ApplicationBase[models.Endpoint]):
             for_update=for_update,
         )
 
-    @ensure_infra("persistence")
-    async def get_endpoints_by_user_id(
-        self, user_id: ULID
-    ) -> QuerySet[models.Endpoint]:
-        return await self.get_objs(
+    def get_endpoints_by_user_id(self, user_id: ULID) -> QuerySet[models.Endpoint]:
+        return self.get_domains(
             conditions={"user_id": user_id},
         )
 
-    @ensure_infra("persistence")
-    async def get_endpoints_by_contact_id(
+    def get_endpoints_by_contact_id(
         self, contact_id: ULID
     ) -> QuerySet[models.Endpoint]:
-        return await self.get_objs(
+        return self.get_domains(
             conditions={"contact_id": contact_id},
         )
 
-    @ensure_infra("persistence")
     async def get_endpoint(self, id: ULID) -> models.Endpoint:
-        return await self.get_obj(id)
+        if domain := await self.get_domain(id=id):
+            return domain
+        raise exceptions.EndpointNotFoundError
 
     @ensure_infra("persistence")
     async def create_endpoint(

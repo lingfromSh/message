@@ -60,10 +60,6 @@ async def initialize_signals(app: FastAPI):
     import message.helpers.signals
 
 
-async def shutdown_eventbus(app: FastAPI, eventbus):
-    await eventbus.shutdown()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
