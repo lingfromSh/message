@@ -1,83 +1,12 @@
-# Standard Library
-import typing
-
 # Third Party Library
-from message import exceptions
 from message import models
-from message.helpers.decorators import ensure_infra
-from tortoise.exceptions import DoesNotExist
-from tortoise.queryset import QuerySet
-from ulid import ULID
-
-# Local Folder
-from .base import Application
+from message.applications.base import Application
 
 
-class EndpointApplication(Application[models.Endpoint], repository=models.Endpoint):
-    def get_endpoints(
-        self,
-        conditions: typing.Dict = None,
-        *,
-        offset: typing.Optional[int] = None,
-        limit: typing.Optional[int] = None,
-        order_by: typing.List[str] = None,
-        for_update: bool = False,
-    ) -> QuerySet[models.Endpoint]:
-        return self.get_domains(
-            conditions,
-            offset=offset,
-            limit=limit,
-            order_by=order_by,
-            for_update=for_update,
-        )
+class EndpointApplication(Application[models.Endpoint]):
+    """
+    Endpoint Application
+    """
 
-    def get_endpoints_by_user_id(self, user_id: ULID) -> QuerySet[models.Endpoint]:
-        return self.get_domains(
-            conditions={"user_id": user_id},
-        )
-
-    def get_endpoints_by_contact_id(
-        self, contact_id: ULID
-    ) -> QuerySet[models.Endpoint]:
-        return self.get_domains(
-            conditions={"contact_id": contact_id},
-        )
-
-    async def get_endpoint(self, id: ULID) -> models.Endpoint:
-        if domain := await self.get_domain(id=id):
-            return domain
-        raise exceptions.EndpointNotFoundError
-
-    @ensure_infra("persistence")
-    async def create_endpoint(
-        self, user_id: ULID, contact_id: ULID, value: typing.Any
-    ) -> models.Endpoint:
-        user_application = self.other(name="user")
-        user_domain = await user_application.get_obj(id=user_id)
-        contact_application = self.other(name="contact")
-        contact_domain = await contact_application.get_obj(id=contact_id)
-        validated_result = await contact_domain.validate_contact(value)
-        if not validated_result.valid:
-            raise exceptions.EndpointContactIsNotValidError
-        domain = await self.repository.create(
-            user=user_domain,
-            contact=contact_domain,
-            value=value,
-        )
-        return domain
-
-    @ensure_infra("persistence")
-    async def update_endpoint(
-        self,
-        endpoint: models.Endpoint,
-        value: typing.Optional[typing.Any] = None,
-    ) -> models.Endpoint:
-        if value is not None:
-            await endpoint.set_value(value=value)
-        return endpoint
-
-    @ensure_infra("persistence")
-    async def destory_endpoints(
-        self, *endpoints: typing.List[models.Endpoint]
-    ) -> typing.Literal["ok", "error"]:
-        return await self.destory_objs(*(endpoint.id for endpoint in endpoints))
+    # required by Application
+    model = models.Endpoint

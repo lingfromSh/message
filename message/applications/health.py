@@ -13,6 +13,9 @@ class ServiceHealthStatus(BaseModel):
 
 
 class HealthApplication:
+    def __init__(self) -> None:
+        self.infra = get_infra()
+
     async def get_service_health(self) -> ServiceHealthStatus:
         return ServiceHealthStatus(
             cache=await self.get_cache_health(),
@@ -23,31 +26,21 @@ class HealthApplication:
         )
 
     async def get_cache_health(self) -> HealthStatus:
-        infra = get_infra()
-
-        cache = await infra.cache()
+        cache = await self.infra.cache()
         return await cache.health_check()
 
     async def get_persistence_health(self) -> HealthStatus:
-        infra = get_infra()
-
-        persistence = await infra.persistence()
+        persistence = await self.infra.persistence()
         return await persistence.health_check()
 
     async def get_storage_health(self) -> HealthStatus:
-        infra = get_infra()
-
-        storage = await infra.storage()
+        storage = await self.infra.storage()
         return await storage.health_check()
 
     async def get_websocket_health(self) -> HealthStatus:
-        infra = get_infra()
-
-        websocket = await infra.websocket()
+        websocket = await self.infra.websocket()
         return await websocket.health_check()
 
     async def get_background_health(self) -> HealthStatus:
-        infra = get_infra()
-
-        background = await infra.background_scheduler()
+        background = await self.infra.background_scheduler()
         return await background.health_check()

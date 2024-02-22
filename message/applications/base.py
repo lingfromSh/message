@@ -3,145 +3,112 @@ import typing
 from contextlib import suppress
 
 # Third Party Library
+from message.common.models import BaseModel
 from message.helpers.decorators import ensure_infra
 from message.helpers.metaclasses import Singleton
-from tortoise import Model
 from tortoise.queryset import QuerySet
 from tortoise.timezone import now
-from tortoise.transactions import in_transaction
 from ulid import ULID
 
-if typing.TYPE_CHECKING:
-    # Third Party Library
-    from infra import InfrastructureContainer
-
-Repository = typing.TypeVar("Repository", bound=Model)
+T = typing.TypeVar("T", bound=BaseModel)
 
 
-class Application(metaclass=Singleton):
+class Application(typing.Generic[T], metaclass=Singleton):
     """
     Base class of Application
 
     Application provides methods for controling domain models.
     """
 
-    _registry_ = {}
-    REPOSITORY: typing.Type[Repository] = NotImplemented
-    DOMAIN: Repository = NotImplemented
-
-    def __init__(self, infra):
-        self.infra = infra
-
     def __init_subclass__(cls) -> None:
-        assert cls.REPOSITORY is not NotImplemented, "repository must be set"
+        """
+        Require subclass to set `model_class` attribute.
+        """
+        assert hasattr(
+            cls, "model_class"
+        ), "subclass of Application must set `model_class` attribute"
+        assert issubclass(
+            cls.model_class, BaseModel
+        ), "model_class attribute must be a subclass of BaseModel"
+        assert cls.model_class == T, "model_class must same as specified type"
+        cls.__annotations__["model_class"] = T
 
-    @property
-    def transaction(self):
-        return in_transaction(self.REPOSITORY._meta.default_connection)
+    @ensure_infra("persistence")
+    async def get(self, id: ULID) -> T | None:
+        """
+        Get a domain model by id.
+        """
+        return await self.model_class.active_objects.get_or_none(id=id)
 
-    def get_domains(
+    @ensure_infra("persistence")
+    async def get_many(
         self,
-        conditions: typing.Dict = None,
-        *,
-        offset: typing.Optional[int] = None,
-        limit: typing.Optional[int] = None,
-        order_by: typing.List[str] = None,
+        filters: dict,
+        limit: int = None,
+        offset: int = None,
+        order_by: tuple[str] = None,
         for_update: bool = False,
-    ) -> QuerySet[Repository]:
-        qs = self.repository.active_objects.filter(**conditions)
-        if offset is not None:
-            qs = qs.offset(offset)
-        if limit is not None:
+        use_index: tuple[str] = None,
+        use_db: str = None,
+    ) -> QuerySet:
+        """
+        Get domain models by filters.
+
+        Args:
+            filters (dict): Filters to apply to the query.
+            for_update (bool): Whether to lock the rows for update.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+            order_by (tuple[str]): Fields to order the results by.
+            use_index (tuple[str]): Index to use for the query.
+            use_db (str): Database to use for the query.
+
+        Returns:
+            QuerySet: A QuerySet object representing the domain models.
+        """
+        qs = self.model_class.active_objects.filter(**filters)
+        if limit is not None and isinstance(limit, int) and limit >= 0:
             qs = qs.limit(limit)
-        if order_by is not None:
-            qs = qs.order_by(*order_by)
+        if offset is not None and isinstance(offset, int) and offset >= 0:
+            qs = qs.offset(offset)
         if for_update:
             qs = qs.select_for_update()
+        if (
+            order_by is not None
+            and isinstance(order_by, tuple)
+            and all(isinstance(o, str) for o in order_by)
+        ):
+            qs = qs.order_by(*order_by)
+        if (
+            use_index is not None
+            and isinstance(use_index, tuple)
+            and all(isinstance(i, str) for i in use_index)
+        ):
+            qs = qs.using_index(*use_index)
+        if use_db is not None and isinstance(use_db, str):
+            qs = qs.using_db(use_db)
         return qs
 
-    def get_domains_by_ids(
-        self,
-        *ids: typing.List[ULID],
-        order_by: typing.List[str] = None,
-        for_update: bool = False,
-    ):
-        """
-        a quick way to get objects by ids
-        """
-        return self.get_objs(
-            conditions={"pk__in": ids},
-            order_by=order_by,
-            for_update=for_update,
-        )
-
-    def construct_domain(self, **kwargs) -> Repository:
-        return self.repository(**kwargs)
-
     @ensure_infra("persistence")
-    async def get_domain(
-        self, id: ULID, raise_exceptions: bool = False
-    ) -> typing.Optional[Repository]:
-        try:
-            return await self.repository.from_id(id=id)
-        except Exception as err:
-            if raise_exceptions:
-                raise err
-            return None
-
-    @ensure_infra("persistence")
-    async def create_domain(
-        self,
-        **kwargs,
-    ) -> Repository:
+    async def delete(self, id: ULID) -> bool:
         """
-        use create to insert domains quickly
+        Delete domain models by id.
         """
-        return await self.repository.create(**kwargs)
-
-    @ensure_infra("persistence")
-    async def update_domain(
-        self,
-        *ids: typing.List[ULID],
-        **kwargs,
-    ) -> None:
-        """
-        use update to update domains
-        """
-        qs = self.get_objs_by_ids(*ids, for_update=True)
-        await qs.update(**kwargs)
-
-    @ensure_infra("persistence")
-    async def bulk_create_domains(
-        self,
-        domains: typing.List[Repository],
-    ):
-        """
-        use bulk create to insert domains quickly
-        """
-        await self.repository.bulk_create(domains)
-
-    @ensure_infra("persistence")
-    async def bulk_update_domains(
-        self,
-        domains: typing.List[Repository],
-        update_fields: typing.List[str],
-    ):
-        """
-        use bulk update to update domains quickly
-        """
-        await self.repository.bulk_update(domains, fields=update_fields)
-
-    @ensure_infra("persistence")
-    async def destory_domains(
-        self,
-        *ids: typing.List[ULID],
-        real: bool = False,
-    ) -> typing.Literal["ok", "error"]:
         with suppress(Exception):
-            qs = self.repository.active_objects.select_for_update().filter(id__in=ids)
-            if real:
-                await qs.delete()
-            else:
-                await qs.update(is_deleted=True, deleted_at=now())
-            return "ok"
-        return "error"
+            await self.model_class.active_objects.filter(id__in=id).update(
+                is_deleted=True, deleted_at=now()
+            )
+            return True
+        return False
+
+    @ensure_infra("persistence")
+    async def delete_many(self, filters: dict) -> bool:
+        """
+        Delete domain models by filters.
+        """
+        with suppress(Exception):
+            await self.model_class.active_objects.filter(**filters).update(
+                is_deleted=True, deleted_at=now()
+            )
+            return True
+        return False
