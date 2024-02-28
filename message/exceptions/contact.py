@@ -4,8 +4,10 @@ from message.exceptions.base import DefinedError
 
 __all__ = [
     "ContactNotFoundError",
-    "ContactSchemaAlreadyRegisteredError",
     "ContactDuplicatedCodeError",
+    "ContactValidationError",
+    "ContactCannotDeleteBuiltinError",
+    "ContactValidateMissingRequiredParamsError",
 ]
 
 
@@ -19,10 +21,13 @@ class ContactDuplicatedCodeError(DefinedError):
     message = "Contact with duplicated code already exists"
 
 
-class ContactSchemaAlreadyRegisteredError(DefinedError):
-    message = "Contact schema already registered"
+class ContactValidationError(DefinedError):
+    message = "Invalid contact"
 
 
-class ContactSchemaNotSupportError(DefinedError):
-    # TODO: need more correct error message
-    message = "Assign pydantic schema as contact definition is not supported via API"
+class ContactCannotDeleteBuiltinError(DefinedError):
+    message = "Cannot delete builtin contact"
+
+
+class ContactValidateMissingRequiredParamsError(DefinedError):
+    message = "Missing required parameters: {params}"

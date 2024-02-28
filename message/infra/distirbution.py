@@ -1,6 +1,5 @@
 # Third Party Library
 import orjson
-from message.infra.abc import CheckResult
 from message.infra.abc import HealthStatus
 from message.infra.abc import Infrastructure
 

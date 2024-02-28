@@ -5,6 +5,10 @@ from tortoise import fields
 
 
 class User(mixins.UserMixin, BaseModel):
+    """
+    User model represents a user in the system.
+    """
+
     external_id = fields.CharField(max_length=255, unique=True)
     metadata = fields.JSONField(default=dict)
     is_active = fields.BooleanField(default=True)
@@ -17,6 +21,10 @@ class User(mixins.UserMixin, BaseModel):
 
 
 class UserEndpoint(BaseModel):
+    """
+    An user endpoint represents a relation between a user and a contact
+    """
+
     user = fields.ForeignKeyField(
         "models.User",
         on_delete=fields.CASCADE,

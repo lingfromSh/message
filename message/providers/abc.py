@@ -6,7 +6,6 @@ from abc import ABCMeta
 from message import exceptions
 from message.infra import get_infra
 from pydantic import BaseModel
-from ulid import ULID
 
 __registry__ = {}
 

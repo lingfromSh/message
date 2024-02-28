@@ -30,8 +30,7 @@ class Application(typing.Generic[T], metaclass=Singleton):
         assert issubclass(
             cls.model_class, BaseModel
         ), "model_class attribute must be a subclass of BaseModel"
-        assert cls.model_class == T, "model_class must same as specified type"
-        cls.__annotations__["model_class"] = T
+        cls.__annotations__["model_class"] = cls.model_class
 
     @ensure_infra("persistence")
     async def get(self, id: ULID) -> T | None:
@@ -41,7 +40,7 @@ class Application(typing.Generic[T], metaclass=Singleton):
         return await self.model_class.active_objects.get_or_none(id=id)
 
     @ensure_infra("persistence")
-    async def get_many(
+    async def get_queryset(
         self,
         filters: dict,
         limit: int = None,
@@ -50,9 +49,9 @@ class Application(typing.Generic[T], metaclass=Singleton):
         for_update: bool = False,
         use_index: tuple[str] = None,
         use_db: str = None,
-    ) -> QuerySet:
+    ) -> QuerySet[T]:
         """
-        Get domain models by filters.
+        Get domain queryset by filters.
 
         Args:
             filters (dict): Filters to apply to the query.
@@ -88,6 +87,46 @@ class Application(typing.Generic[T], metaclass=Singleton):
         if use_db is not None and isinstance(use_db, str):
             qs = qs.using_db(use_db)
         return qs
+
+    @ensure_infra("persistence")
+    async def get_many(
+        self,
+        filters: dict,
+        limit: int = None,
+        offset: int = None,
+        order_by: tuple[str] = None,
+        for_update: bool = False,
+        use_index: tuple[str] = None,
+        use_db: str = None,
+    ) -> typing.AsyncIterator[T]:
+        """
+        Get domain models by filters.
+        """
+        qs = await self.get_queryset(
+            filters, limit, offset, order_by, for_update, use_index, use_db
+        )
+        return qs
+
+    @ensure_infra("persistence")
+    async def create(self, **kwargs) -> T:
+        """
+        Create a new domain model.
+        """
+        domain = self.model_class(**kwargs)
+        await domain.validate(raise_exception=True)
+        assert False
+        await domain.save()
+        return domain
+
+    @ensure_infra("persistence")
+    async def update(self, domain, **kwargs) -> T:
+        """
+        Update domain model
+        """
+        domain.update_from_dict(kwargs)
+        await domain.validate()
+        await domain.save()
+        return domain
 
     @ensure_infra("persistence")
     async def delete(self, id: ULID) -> bool:

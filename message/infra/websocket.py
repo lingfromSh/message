@@ -179,7 +179,7 @@ class WebsocketInfrastructure(Infrastructure):
                 try:
                     await connection.send(message)
                     ret.append(True)
-                except Exception as err:
+                except Exception:
                     ret.append(False)
             else:
                 ret.append(False)

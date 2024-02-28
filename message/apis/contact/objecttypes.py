@@ -1,22 +1,16 @@
-# Standard Library
-from enum import Enum
-
 # Third Party Library
 import strawberry
 from message import models
+from message.apis.contact.enums import ContactDefinitionTypeEnum
 from message.common.graphql.relay import TortoiseORMNode
-
-
-class ContactDefinitionTypeEnum(Enum):
-    JSONSCHEMA = "jsonschema"
-
-
-@strawberry.input
-class ContactDefinitionStrawberryType:
-    type: strawberry.enum(ContactDefinitionTypeEnum)
-    contact_schema: strawberry.scalars.JSON
 
 
 class ContactTortoiseORMNode(TortoiseORMNode):
     class Meta:
         model = models.Contact
+
+
+@strawberry.input
+class ContactDefinition:
+    type: strawberry.enum(ContactDefinitionTypeEnum)  # type: ignore
+    value: strawberry.scalars.JSON

@@ -3,9 +3,10 @@ import typing
 
 # Third Party Library
 import strawberry
-from message import applications
+from message import exceptions
 from message.common.graphql.relay import TortoiseORMPaginationConnection
 from message.common.graphql.relay import connection
+from message.wiring import ApplicationContainer
 from strawberry import relay
 
 # Local Folder
@@ -21,7 +22,7 @@ class Query:
         user_ids: typing.Optional[typing.List[relay.GlobalID]] = None,
         contact_ids: typing.Optional[typing.List[relay.GlobalID]] = None,
     ) -> typing.AsyncIterable[EndpointTortoiseORMNode]:
-        application = applications.EndpointApplication()
+        application = ApplicationContainer.endpoint_application()
         conditions = {}
         if ids:
             conditions["id__in"] = [id.node_id for id in ids]
@@ -29,7 +30,7 @@ class Query:
             conditions["user_id__in"] = [id.node_id for id in user_ids]
         if contact_ids:
             conditions["contact_id__in"] = [id.node_id for id in contact_ids]
-        return await application.get_endpoints(conditions)
+        return await application.get_many(conditions)
 
 
 @strawberry.type(description="Endpoint API")
@@ -45,8 +46,8 @@ class Mutation:
         contact_id: relay.GlobalID,
         value: strawberry.scalars.JSON,
     ) -> EndpointTortoiseORMNode:
-        application = applications.EndpointApplication()
-        endpoint = await application.create_endpoint(
+        application = ApplicationContainer.endpoint_application()
+        endpoint = await application.create(
             user_id=user_id.node_id,
             contact_id=contact_id.node_id,
             value=value,
@@ -57,12 +58,16 @@ class Mutation:
     async def endpoint_update(
         self, id: relay.GlobalID, value: strawberry.scalars.JSON
     ) -> EndpointTortoiseORMNode:
-        application = applications.EndpointApplication()
-        endpoint = await application.get_endpoint(id=id.node_id)
+        application = ApplicationContainer.endpoint_application()
+        endpoint = await application.get(id=id.node_id)
+        if not endpoint:
+            raise exceptions.EndpointNotFoundError
         await application.update_endpoint(endpoint, value=value)
         return await EndpointTortoiseORMNode.resolve_orm(endpoint)
 
     @strawberry.mutation(description="Destory endpoints")
     async def endpoint_destroy(self, ids: typing.List[relay.GlobalID]) -> str:
-        application = applications.EndpointApplication()
-        return await application.destory_objs(*(id.node_id for id in ids))
+        ids = [id.node_id for id in ids]
+        application = ApplicationContainer.endpoint_application()
+        deleted = await application.delete_many(filters={"id__in": ids})
+        return "ok" if deleted else "failed"

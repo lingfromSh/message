@@ -6,15 +6,17 @@ from tortoise import fields
 
 class Contact(mixins.ContactMixin, BaseModel):
     """
-    contact is a method of notification.
+    Contact is a method of notification
 
     like mobile, email, slack, etc.
     """
 
     name = fields.CharField(max_length=255)
+    description = fields.TextField(null=True)
     code = fields.CharField(max_length=255)
-    description = fields.TextField()
     definition = fields.JSONField(default=dict)
+    # builtin contact can not be deleted
+    is_builtin = fields.BooleanField(default=False)
 
     class Meta:
         table = "contacts"

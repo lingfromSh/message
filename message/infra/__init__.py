@@ -13,8 +13,6 @@ from message.infra.persistence import PersistenceInfrastructure
 from message.infra.queue import QueueInfrastructure
 from message.infra.storage import StorageInfrastructure
 from message.infra.websocket import WebsocketInfrastructure
-from taskiq_redis import ListQueueBroker
-from taskiq_redis import RedisAsyncResultBackend
 
 __infra__ = None
 

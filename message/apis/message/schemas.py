@@ -26,22 +26,20 @@ class Query:
         users: typing.Optional[typing.List[relay.GlobalID]] = None,
         endpoints: typing.Optional[typing.List[relay.GlobalID]] = None,
         statuses: typing.Optional[
-            typing.List[strawberry.enum(MessageStatusEnum)]
+            typing.List[strawberry.enum(MessageStatusEnum)]  # type: ignore
         ] = None,
     ) -> typing.AsyncIterable[MessageTortoiseORMNode]:
         application = applications.MessageApplication()
-        conditions = {}
+        filters = {}
         if provider is not None:
-            conditions["provider_id__in"] = [provider.node_id for provider in provider]
+            filters["provider_id__in"] = [provider.node_id for provider in provider]
         if users is not None:
-            conditions["end_users__id__in"] = [user.node_id for user in users]
+            filters["end_users__id__in"] = [user.node_id for user in users]
         if endpoints is not None:
-            conditions["endpoints__id__in"] = [
-                endpoint.node_id for endpoint in endpoints
-            ]
+            filters["endpoints__id__in"] = [endpoint.node_id for endpoint in endpoints]
         if statuses is not None:
-            conditions["status__in"] = [status.value for status in statuses]
-        return await (await application.get_messages(conditions))
+            filters["status__in"] = [status.value for status in statuses]
+        return application.get_many(filters=filters)
 
 
 @strawberry.type(description="Message API")

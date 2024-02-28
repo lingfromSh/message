@@ -18,14 +18,12 @@ from strawberry.relay import NodeID
 from strawberry.relay import NodeType
 from strawberry.relay.exceptions import RelayWrongAnnotationError
 from strawberry.relay.exceptions import RelayWrongResolverAnnotationError
-from strawberry.relay.utils import to_base64
 from strawberry.type import StrawberryContainer
 from strawberry.type import get_object_definition
 from strawberry.types.info import Info
 from strawberry.utils.await_maybe import AwaitableOrValue
 from strawberry.utils.typing import eval_type
 from tortoise import Model
-from tortoise import Tortoise
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise.contrib.pydantic.creator import pydantic_queryset_creator
 from tortoise.queryset import QuerySet
@@ -79,7 +77,7 @@ class TortoiseORMModelNodeMetaclass(type):
         # make new name
         name = "{model_name}TortoiseNode".format(model_name=tortoise_model.__name__)
         # make new bases
-        # TODO: add relation fields
+        # TODO: resolve relation fields
         pydantic_model = pydantic_model_creator(tortoise_model)
         pydantic_queryset_model = pydantic_queryset_creator(tortoise_model)
         pure_python_type = convert_python_type_to_pure_python_type(pydantic_model)
@@ -92,7 +90,8 @@ class TortoiseORMModelNodeMetaclass(type):
         attrs["__pydantic_model__"] = pydantic_model
         attrs["__pydantic_queryset_model__"] = pydantic_queryset_model
         attrs["__annotations__"] = pure_python_type.__annotations__
-        attrs["__annotations__"]["id"] = NodeID[ULID]
+        attrs["__annotations__"]["id"] = NodeID[int]
+
         subcls = super().__new__(cls, name, bases, attrs)
         return strawberry.type(description="An relay node for tortoise orm model")(
             subcls
@@ -166,7 +165,9 @@ class TortoiseORMPaginationConnection(Connection[NodeType]):
 
         """
         # TODO: get field type and resolve model as field type
-        return node_type(**node_type.__pydantic_model__.from_orm(node).model_dump())
+        return node_type(
+            **node_type.__pydantic_model__.model_validate(node).model_dump()
+        )
 
     @classmethod
     def resolve_connection(

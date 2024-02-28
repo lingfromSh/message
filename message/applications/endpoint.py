@@ -9,4 +9,4 @@ class EndpointApplication(Application[models.Endpoint]):
     """
 
     # required by Application
-    model = models.Endpoint
+    model_class = models.Endpoint

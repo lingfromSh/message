@@ -6,15 +6,18 @@ from tortoise import fields
 
 
 class Message(mixins.MessageMixin, BaseModel):
+    """
+    Message model represents a message history including content, status, and related users, endpoints and contacts.
+    """
+
     provider = fields.ForeignKeyField("models.Provider", on_delete=fields.NO_ACTION)
-    end_users = fields.ManyToManyField(
+    users = fields.ManyToManyField(
         "models.User",
         related_name="messages",
     )
     endpoints = fields.ManyToManyField(
         "models.Endpoint",
         related_name="messages",
-        on_delete=fields.NO_ACTION,
     )
     contacts = fields.JSONField(null=True)
     content = fields.TextField(null=True)

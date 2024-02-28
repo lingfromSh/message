@@ -1,11 +1,11 @@
 persistence:
-  dsn: postgres://pgadmin:pgpassword@localhost:6432/message
+  dsn: postgres://pgadmin:pgpassword@pgbouncer:6432/message
 
 cache:
-  dsn: redis://localhost:6379/
+  dsn: redis://redis:6379/
 
 queue:
-  dsn: amqp://rbadmin:rbpassword@localhost:5672/
+  dsn: amqp://rbadmin:rbpassword@rabbitmq:5672/
   prefecth_count: 100
 
 storage:

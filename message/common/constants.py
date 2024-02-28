@@ -1,15 +1,8 @@
 # Standard Library
 import enum
-import os
 
 QUEUE_NAME = "message"
-SETTINGS_YAML = os.environ.get("MESSAGE_SETTINGS", "message/settings.yaml")
-
-
-class ContactEnum(enum.Enum):
-    EMAIL = "email"
-    MOBILE = "mobile"
-    WEBSOCKET = "websocket"
+SETTINGS_YAML = "/app/message/settings.yaml"
 
 
 class MessageStatusEnum(enum.Enum):
@@ -18,7 +11,3 @@ class MessageStatusEnum(enum.Enum):
     SENDING = "sending"
     FAILED = "failed"
     SUCCEEDED = "succeeded"
-
-
-class SIGNALS:
-    MESSAGE_CREATE = "message.create"

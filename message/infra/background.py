@@ -1,6 +1,5 @@
 # Third Party Library
 from apscheduler.executors.asyncio import AsyncIOExecutor
-from apscheduler.executors.base import BaseExecutor
 from apscheduler.executors.pool import ProcessPoolExecutor
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler

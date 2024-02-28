@@ -5,7 +5,6 @@ from tortoise import Model
 from tortoise import fields
 from tortoise.manager import Manager
 from tortoise.queryset import QuerySet
-from tortoise.timezone import now
 
 __all__ = [
     "ActiveObjectsManager",
@@ -19,7 +18,7 @@ class ActiveObjectsManager(Manager):
 
 
 class BaseModel(Model):
-    id = ULIDField(pk=True)
+    id = fields.BigIntField(pk=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
     is_deleted = fields.BooleanField(default=False)
