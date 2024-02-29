@@ -5,7 +5,6 @@ import typing
 import strawberry
 from message import models
 from message.common.graphql.relay import TortoiseORMNode
-from message.common.graphql.scalar import ULID
 from strawberry import relay
 
 

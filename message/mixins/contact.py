@@ -49,10 +49,12 @@ class ContactDefinitionModel(BaseModel):
     def validate_contact(self, contact: typing.Any) -> ValidationResult:
         if self.type == "jsonschema":
             with suppress(jsonschema.ValidationError):
-                jsonschema.validate(contact, self.contact_schema)
+                jsonschema.validate(contact["jsonschema"], self.contact_schema)
                 return ValidationResult(valid=True, validated_data=contact)
         elif self.type == "regex":
-            if isinstance(contact, str) and re.match(self.contact_schema, contact):
+            if isinstance(contact, dict) and re.match(
+                self.contact_schema, contact.get("regex", "")
+            ):
                 return ValidationResult(valid=True, validated_data=contact)
         return ValidationResult(valid=False, validated_data=None)
 

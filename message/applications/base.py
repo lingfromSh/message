@@ -8,7 +8,6 @@ from message.helpers.decorators import ensure_infra
 from message.helpers.metaclasses import Singleton
 from tortoise.queryset import QuerySet
 from tortoise.timezone import now
-from ulid import ULID
 
 T = typing.TypeVar("T", bound=BaseModel)
 
@@ -33,11 +32,11 @@ class Application(typing.Generic[T], metaclass=Singleton):
         cls.__annotations__["model_class"] = cls.model_class
 
     @ensure_infra("persistence")
-    async def get(self, id: ULID) -> T | None:
+    async def get(self, id: int, **kwargs) -> T | None:
         """
         Get a domain model by id.
         """
-        return await self.model_class.active_objects.get_or_none(id=id)
+        return await self.model_class.active_objects.get_or_none(id=id, **kwargs)
 
     @ensure_infra("persistence")
     async def get_queryset(
@@ -114,7 +113,6 @@ class Application(typing.Generic[T], metaclass=Singleton):
         """
         domain = self.model_class(**kwargs)
         await domain.validate(raise_exception=True)
-        assert False
         await domain.save()
         return domain
 
@@ -124,12 +122,12 @@ class Application(typing.Generic[T], metaclass=Singleton):
         Update domain model
         """
         domain.update_from_dict(kwargs)
-        await domain.validate()
+        await domain.validate(raise_exception=True)
         await domain.save()
         return domain
 
     @ensure_infra("persistence")
-    async def delete(self, id: ULID) -> bool:
+    async def delete(self, id: int) -> bool:
         """
         Delete domain models by id.
         """

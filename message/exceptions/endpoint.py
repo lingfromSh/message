@@ -3,7 +3,7 @@ from .base import DefinedError
 
 __all__ = [
     "EndpointNotFoundError",
-    "EndpointContactIsNotValidError",
+    "EndpointInvalidValueError",
 ]
 
 
@@ -11,5 +11,9 @@ class EndpointNotFoundError(DefinedError):
     message = "Endpoint not found"
 
 
-class EndpointContactIsNotValidError(DefinedError):
-    message = "Contact value is not valid"
+class EndpointInvalidValueError(DefinedError):
+    message = "Invalid value within contact schema"
+
+
+class EndpointContactRequiredError(DefinedError):
+    message = "An existed contact is required"

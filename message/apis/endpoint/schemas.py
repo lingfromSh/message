@@ -3,9 +3,9 @@ import typing
 
 # Third Party Library
 import strawberry
-from message import exceptions
 from message.common.graphql.relay import TortoiseORMPaginationConnection
 from message.common.graphql.relay import connection
+from message.exceptions.endpoint import EndpointNotFoundError
 from message.wiring import ApplicationContainer
 from strawberry import relay
 
@@ -36,7 +36,7 @@ class Query:
 @strawberry.type(description="Endpoint API")
 class Mutation:
     @strawberry.mutation(description="Import endpoints", deprecation_reason="not ready")
-    async def import_endpoints(self) -> str:
+    async def endpoint_import(self) -> str:
         return "not ready"
 
     @strawberry.mutation(description="Create endpoint")
@@ -61,13 +61,14 @@ class Mutation:
         application = ApplicationContainer.endpoint_application()
         endpoint = await application.get(id=id.node_id)
         if not endpoint:
-            raise exceptions.EndpointNotFoundError
+            raise EndpointNotFoundError
         await application.update_endpoint(endpoint, value=value)
         return await EndpointTortoiseORMNode.resolve_orm(endpoint)
 
     @strawberry.mutation(description="Destory endpoints")
     async def endpoint_destroy(self, ids: typing.List[relay.GlobalID]) -> str:
-        ids = [id.node_id for id in ids]
         application = ApplicationContainer.endpoint_application()
-        deleted = await application.delete_many(filters={"id__in": ids})
+        deleted = await application.delete_many(
+            filters={"id__in": [int(id.node_id) for id in ids]}
+        )
         return "ok" if deleted else "failed"

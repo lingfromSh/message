@@ -5,6 +5,7 @@ import typing
 import strawberry
 from message.common.graphql.relay import TortoiseORMPaginationConnection
 from message.common.graphql.relay import connection
+from message.exceptions.user import UserNotFoundError
 from message.wiring import ApplicationContainer
 from strawberry import relay
 
@@ -59,7 +60,7 @@ class Mutation:
             external_id=external_id,
             metadata=metadata,
             endpoints=[
-                {"contact": endpoint.contact.node_id, "value": endpoint.value}
+                {"contact_id": int(endpoint.contact.node_id), "value": endpoint.value}
                 for endpoint in endpoints
             ],
         )
@@ -74,36 +75,35 @@ class Mutation:
         is_active: typing.Optional[bool] = None,
         endpoints: typing.Optional[typing.List[UserEndpointUpdateInput]] = None,
     ) -> UserTortoiseORMNode:
-        application = applications.UserApplication()
-        user = await application.get_user(id.node_id)
-        # TODO: replace node_id with id.resolve_node
-        endpoints = [
-            (
+        application = ApplicationContainer.user_application()
+        user = await application.get(id=int(id.node_id))
+        if not user:
+            raise UserNotFoundError
+
+        if endpoints:
+            endpoints = [
                 {
-                    "id": endpoint.id.node_id,
-                    "value": endpoint.value,
+                    "id": int(endpoint.id.node_id) if endpoint.id else None,
+                    "contact_id": (
+                        int(endpoint.contact.node_id) if endpoint.contact else None
+                    ),
+                    "value": endpoint.value if endpoint.value else None,
                 }
-                if endpoint.id is not None
-                else {
-                    "contact": endpoint.contact.node_id,
-                    "value": endpoint.value,
-                }
-            )
-            for endpoint in endpoints
-        ]
-        await application.update_user(
+                for endpoint in endpoints
+            ]
+
+        await application.update(
             user,
             external_id=external_id,
             metadata=metadata,
             is_active=is_active,
             endpoints=endpoints,
         )
-        # TODO: implement auto return type convertion
         return await UserTortoiseORMNode.resolve_orm(user)
 
     @strawberry.mutation(description="Delete users")
-    async def user_destory(
-        self, ids: typing.Optional[typing.List[relay.GlobalID]]
-    ) -> str:
-        application = applications.UserApplication()
-        return await application.delete_many(*(id.node_id for id in ids))
+    async def user_destory(self, ids: typing.List[relay.GlobalID]) -> bool:
+        application = ApplicationContainer.user_application()
+        return await application.delete_many(
+            filters={"id__in": [id.node_id for id in ids]}
+        )

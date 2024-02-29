@@ -15,6 +15,7 @@ class User(mixins.UserMixin, BaseModel):
 
     class Meta:
         table = "users"
+        unique_together = (("external_id", "deleted_at"),)
 
     class PydanticMeta(BaseModel.PydanticMeta):
         exclude = ("endpointss", "messages") + BaseModel.PydanticMeta.exclude
