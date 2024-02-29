@@ -29,7 +29,7 @@ class Query:
         application = ApplicationContainer.contact_application()
         filters = {}
         if ids is not None:
-            filters["id__in"] = [id.node_id for id in ids]
+            filters["id__in"] = [int(id.node_id) for id in ids]
         if name is not None:
             filters["name__contains"] = name
         if code is not None:
@@ -57,7 +57,7 @@ class Query:
             )
 
         application = ApplicationContainer.contact_application()
-        contact = await application.get(id=id.node_id)
+        contact = await application.get(id=int(id.node_id))
         if not contact:
             raise exceptions.ContactNotFoundError
 
@@ -107,7 +107,7 @@ class Mutation:
         definition: typing.Optional[ContactDefinition] = None,
     ) -> ContactTortoiseORMNode:
         application = ApplicationContainer.contact_application()
-        contact = await application.get_contact(id=id.node_id)
+        contact = await application.get_contact(id=int(id.node_id))
         if not contact:
             raise exceptions.ContactNotFoundError
 
@@ -129,7 +129,7 @@ class Mutation:
 
     @strawberry.mutation(description="Destroy contact")
     async def contact_destroy(self, ids: typing.List[relay.GlobalID]) -> str:
-        ids = [id.node_id for id in ids]
+        ids = [int(id.node_id) for id in ids]
         application = ApplicationContainer.contact_application()
 
         qs = await application.get_many(filters={"id__in": ids, "is_builtin": True})

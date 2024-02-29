@@ -25,11 +25,11 @@ class Query:
         application = ApplicationContainer.endpoint_application()
         conditions = {}
         if ids:
-            conditions["id__in"] = [id.node_id for id in ids]
+            conditions["id__in"] = [int(id.node_id) for id in ids]
         if user_ids:
-            conditions["user_id__in"] = [id.node_id for id in user_ids]
+            conditions["user_id__in"] = [int(id.node_id) for id in user_ids]
         if contact_ids:
-            conditions["contact_id__in"] = [id.node_id for id in contact_ids]
+            conditions["contact_id__in"] = [int(id.node_id) for id in contact_ids]
         return await application.get_many(conditions)
 
 
@@ -48,8 +48,8 @@ class Mutation:
     ) -> EndpointTortoiseORMNode:
         application = ApplicationContainer.endpoint_application()
         endpoint = await application.create(
-            user_id=user_id.node_id,
-            contact_id=contact_id.node_id,
+            user_id=int(user_id.node_id),
+            contact_id=int(contact_id.node_id),
             value=value,
         )
         return await EndpointTortoiseORMNode.resolve_orm(endpoint)

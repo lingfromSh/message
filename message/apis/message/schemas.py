@@ -79,7 +79,7 @@ class Subscription:
 
         while message is None:
             try:
-                message = await application.get_message(id.node_id)
+                message = await application.get_message(id=int(id.node_id))
             except exceptions.MessageNotFoundError:
                 message = None
                 yield message

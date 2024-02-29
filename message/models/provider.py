@@ -41,7 +41,6 @@ class Provider(mixins.ProviderMixin, BaseModel):
     alias = fields.CharField(max_length=255)
     tags = fields.JSONField(default=list)
     connection_params = fields.JSONField(default=dict)
-    message_params = fields.JSONField(default=dict)
 
     class Meta:
         table = "providers"

@@ -3,9 +3,9 @@ import typing
 
 # Third Party Library
 import strawberry
-from message import applications
 from message.common.graphql.relay import TortoiseORMPaginationConnection
 from message.common.graphql.relay import connection
+from message.wiring import ApplicationContainer
 from strawberry import relay
 
 # Local Folder
@@ -19,13 +19,13 @@ class Query:
     async def provider_templates(
         self, code: typing.Optional[str] = None, name: typing.Optional[str] = None
     ) -> typing.AsyncIterator[ProviderTemplateTortoiseORMNode]:
-        application = applications.ProviderTemplateApplication()
+        application = ApplicationContainer.provider_template_application()
         filters = {}
         if code is not None:
             filters["code"] = code
         if name is not None:
             filters["name"] = name
-        return application.get_many(filters=filters)
+        return await application.get_many(filters=filters)
 
     @connection(TortoiseORMPaginationConnection[ProviderTortoiseORMNode])
     async def providers(
@@ -34,21 +34,15 @@ class Query:
         alias: typing.Optional[str] = None,
         tags: typing.Optional[typing.List[str]] = None,
     ) -> typing.AsyncIterator[ProviderTortoiseORMNode]:
-        application = applications.ProviderApplication()
+        application = ApplicationContainer.provider_application()
         filters = {}
         if template_id is not None:
-            filters["provider_template_id"] = template_id.node_id
+            filters["provider_template_id"] = int(template_id.node_id)
         if alias is not None:
             filters["alias"] = alias
         if tags is not None:
             filters["tags__overlap"] = tags
         return application.get_many(filters=filters)
-
-    @strawberry.field(description="Test a provider")
-    async def provider_test(
-        self, template_id: relay.GlobalID, alias: str, params: strawberry.scalars.JSON
-    ) -> bool:
-        ...
 
 
 @strawberry.type(description="Provider Template API")
@@ -58,15 +52,14 @@ class Mutation:
         self,
         template_id: relay.GlobalID,
         alias: str,
-        params: strawberry.scalars.JSON,
+        connection_params: strawberry.scalars.JSON,
         tags: typing.Optional[typing.List[str]] = None,
     ) -> ProviderTortoiseORMNode:
-        application = applications.ProviderApplication()
-        provider_template_id = template_id.node_id
+        application = ApplicationContainer.provider_application()
         provider = await application.create(
-            provider_template_id=provider_template_id,
+            provider_template_id=int(template_id.node_id),
             alias=alias,
-            params=params,
+            connection_params=connection_params,
             tags=tags,
         )
         return await ProviderTortoiseORMNode.resolve_orm(provider)
@@ -76,22 +69,22 @@ class Mutation:
         self,
         template_id: relay.GlobalID,
         alias: str,
-        params: strawberry.scalars.JSON,
+        connection_params: strawberry.scalars.JSON,
         tags: typing.Optional[typing.List[str]] = None,
     ) -> ProviderTortoiseORMNode:
-        application = applications.ProviderApplication()
-        provider_template_id = template_id.node_id
+        application = ApplicationContainer.product_application()
+        provider_template_id = int(template_id.node_id)
         provider = await application.update(
             provider_template_id=provider_template_id,
             alias=alias,
-            params=params,
+            connection_params=connection_params,
             tags=tags,
         )
         return await ProviderTortoiseORMNode.resolve_orm(provider)
 
     @strawberry.mutation(description="Delete a provider")
-    async def provider_destroy(self, ids: typing.List[relay.GlobalID]) -> str:
-        application = applications.ProviderApplication()
-        ids = [id.node_id for id in ids]
-        deleted = await application.delete_many(filters={"id__in": ids})
-        return "ok" if deleted else "failed"
+    async def provider_destroy(self, ids: typing.List[relay.GlobalID]) -> bool:
+        application = ApplicationContainer.provider_application()
+        return await application.delete_many(
+            filters={"id__in": [int(id.node_id) for id in ids]}
+        )
