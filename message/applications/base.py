@@ -5,14 +5,13 @@ from contextlib import suppress
 # Third Party Library
 from message.common.models import BaseModel
 from message.helpers.decorators import ensure_infra
-from message.helpers.metaclasses import Singleton
 from tortoise.queryset import QuerySet
 from tortoise.timezone import now
 
 T = typing.TypeVar("T", bound=BaseModel)
 
 
-class Application(typing.Generic[T], metaclass=Singleton):
+class Application(typing.Generic[T]):
     """
     Base class of Application
 
@@ -97,14 +96,13 @@ class Application(typing.Generic[T], metaclass=Singleton):
         for_update: bool = False,
         use_index: tuple[str] = None,
         use_db: str = None,
-    ) -> typing.AsyncIterator[T]:
+    ) -> typing.AsyncIterable[T]:
         """
         Get domain models by filters.
         """
-        qs = await self.get_queryset(
+        return await self.get_queryset(
             filters, limit, offset, order_by, for_update, use_index, use_db
         )
-        return qs
 
     @ensure_infra("persistence")
     async def create(self, **kwargs) -> T:

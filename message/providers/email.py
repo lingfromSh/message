@@ -4,6 +4,7 @@ import typing
 # Third Party Library
 from apprise import Apprise
 from apprise import NotifyFormat
+from message.providers.abc import MessageDefinition
 from message.providers.abc import ProcessResult
 from message.providers.abc import ProviderBase
 from pydantic import BaseModel
@@ -32,7 +33,7 @@ class EmailConnectionDefinition(BaseModel):
     port: typing.Optional[int] = Field(default=None)
 
 
-class EmailMessageDefinition(BaseModel):
+class EmailMessageDefinition(MessageDefinition):
     """
     Definition of a email message.
 
@@ -111,10 +112,36 @@ class EmailProvider(ProviderBase):
             server=server,
         )
 
-        queries = message.model_dump(
-            include=("to", "cc", "bcc"),
-            exclude_none=True,
-        )
+        if message.users:
+            endpoint_application = self.applications.endpoint_application()
+            qs = await endpoint_application.get_queryset(
+                filters={
+                    "user_id__in": message.users,
+                    "contact__code__in": self.meta.supported_contacts,
+                }
+            )
+            async for endpoint in qs.select_related("contact"):
+                validated = await endpoint.contact.validate_endpoint_value(
+                    endpoint.value
+                )
+                message.to.append(validated.validated_data)
+
+        if message.endpoints:
+            endpoint_application = self.applications.endpoint_application()
+            qs = await endpoint_application.get_queryset(
+                filters={
+                    "id__in": message.endpoints,
+                    "contact__code__in": self.meta.supported_contacts,
+                }
+            )
+            async for endpoint in qs.select_related("contact"):
+                validated = await endpoint.contact.validate_endpoint_value(
+                    endpoint.value
+                )
+                message.to.append(validated.validated_data)
+
+        queries = message.model_dump(include=("to", "cc", "bcc"))
+
         if from_address := self.connection_params.from_address:
             queries["from"] = from_address
 

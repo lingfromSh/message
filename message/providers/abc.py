@@ -5,15 +5,27 @@ from datetime import timezone
 from inspect import isclass
 
 # Third Party Library
+from message.wiring import ApplicationContainer
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
 
 class ProcessResult(BaseModel):
-    status: typing.Literal["success", "pending", "inprocess", "failed"]
+    status: typing.Literal["success", "failed"]
     error_message: typing.Optional[str] = Field(default=None)
     processed_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+
+
+class MessageDefinition(BaseModel):
+    """
+    Base validation model for message definition.
+
+    Each provider should be able to accept users, endpoints as input and send messages to them.
+    """
+
+    users: typing.List[int] = Field(default_factory=list)
+    endpoints: typing.List[str] = Field(default_factory=list)
 
 
 class ProviderInfo(BaseModel):
@@ -21,8 +33,9 @@ class ProviderInfo(BaseModel):
     code: str
     description: typing.Optional[str] = Field(default=None)
     supported_contacts: typing.List[str] = Field(default_factory=list)
-    can_recv: bool
-    can_send: bool
+
+    can_send: bool  # which means this provider allow sending messages.
+    can_read: bool  # which means this provider allow subscribing incoming messages.
 
     connection_definition: BaseModel
     message_definition: BaseModel
@@ -50,6 +63,8 @@ class ProviderMetaclass(type):
 class ProviderBase(metaclass=ProviderMetaclass):
     class Meta:
         abstract = True
+
+    applications: typing.ClassVar[ApplicationContainer] = ApplicationContainer
 
     def __init__(self, connection_params: typing.Union[dict, BaseModel]) -> None:
         self.connection_params = self.meta.connection_definition.model_validate(

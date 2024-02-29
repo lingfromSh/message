@@ -62,9 +62,9 @@ class Query:
             raise exceptions.ContactNotFoundError
 
         if regex_value is not None:
-            return contact.validate_endpoint_value(regex_value)
+            return contact.validate_endpoint_value(regex_value).valid
         elif jsonschema_value is not None:
-            return contact.validate_endpoint_value(jsonschema_value)
+            return contact.validate_endpoint_value(jsonschema_value).valid
         else:
             # this branch will never happen
             return False

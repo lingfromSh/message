@@ -90,12 +90,11 @@ class ContactMixin:
 
             return True
         except Exception as error:
-            # TODO: logging error
             if raise_exception:
                 raise error
             return False
 
-    def validate_endpoint_value(self, contact_value: str | dict) -> bool:
+    def validate_endpoint_value(self, contact_value: str | dict) -> ValidationResult:
         """
         Validate the contact value according to the contact schema.
 
@@ -107,4 +106,4 @@ class ContactMixin:
         """
         definition_model = ContactDefinitionModel.model_validate(self.definition)
         validated_result = definition_model.validate_contact(contact_value)
-        return validated_result.valid
+        return validated_result

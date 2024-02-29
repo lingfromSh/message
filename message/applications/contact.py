@@ -17,4 +17,4 @@ class ContactApplication(Application[models.Contact]):
         """
         Validate value of contact
         """
-        return contact.validate_endpoint_value(contact_value)
+        return contact.validate_endpoint_value(contact_value).valid

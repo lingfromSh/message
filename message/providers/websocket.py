@@ -25,3 +25,4 @@ class WebsocketProvider(ProviderBase):
 
     # ability
     can_send = True
+    can_read = True
