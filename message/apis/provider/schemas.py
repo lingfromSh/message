@@ -13,7 +13,7 @@ from .objecttypes import ProviderTemplateTortoiseORMNode
 from .objecttypes import ProviderTortoiseORMNode
 
 
-@strawberry.type(description="Provider Related API")
+@strawberry.type(description="Provider API")
 class Query:
     @connection(TortoiseORMPaginationConnection[ProviderTemplateTortoiseORMNode])
     async def provider_templates(
@@ -42,7 +42,7 @@ class Query:
             filters["alias"] = alias
         if tags is not None:
             filters["tags__overlap"] = tags
-        return application.get_many(filters=filters)
+        return await application.get_many(filters=filters)
 
 
 @strawberry.type(description="Provider Template API")
